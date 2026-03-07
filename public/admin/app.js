@@ -719,10 +719,8 @@ function connectPublicSSE(slug) {
     }
     refreshFeedCount();
     updatePreviewIframe();
-    // Play sound only for entries from other editors
-    if (entry.author_id !== state.user?.id) {
-      playNewEntrySound(entry.entry_type);
-    }
+    // Play sound for new entries
+    playNewEntrySound(entry.entry_type);
   });
 
   sse.addEventListener('update_entry', (e) => {
