@@ -50,13 +50,8 @@ img { max-width: 100%; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--scrollbar, #2A2F3A); border-radius: 3px; }
 
-/* ─── Logo theme switching ──────────────────────────────────────────────────── */
-/* Login page logos: light version hidden by default (dark theme default) */
-.logo-for-light { display: none !important; }
-[data-theme="light"] .logo-for-dark { display: none !important; }
-[data-theme="light"] .logo-for-light { display: block !important; }
-
-/* Topbar brand logo: single img, src swapped via JS in applyTheme() */
+/* ─── Logo sizing ───────────────────────────────────────────────────────────── */
+/* Both brand and login logos swap src via applyTheme() in JS */
 .brand-logo { height: 26px !important; width: 26px !important; object-fit: contain; flex-shrink: 0; }
 
 /* ─── Login ─────────────────────────────────────────────────────────────────── */

@@ -235,9 +235,11 @@ function applyTheme(theme) {
   const moonIcon = document.querySelector('.icon-moon');
   if (sunIcon) sunIcon.classList.toggle('hidden', theme === 'dark');
   if (moonIcon) moonIcon.classList.toggle('hidden', theme === 'light');
-  // Update brand logo src based on theme
+  // Update logo srcs based on theme
   const brandLogo = document.getElementById('brand-logo-img');
   if (brandLogo) brandLogo.src = theme === 'light' ? '/logo-square-dark.jpg' : '/logo-square-light.jpg';
+  const loginLogo = document.getElementById('login-logo-img');
+  if (loginLogo) loginLogo.src = theme === 'light' ? '/logo-rect-dark.jpg' : '/logo-rect-light.jpg';
 }
 
 // ─── Blogs ────────────────────────────────────────────────────────────────────
