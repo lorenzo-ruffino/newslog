@@ -51,16 +51,13 @@ img { max-width: 100%; }
 ::-webkit-scrollbar-thumb { background: var(--scrollbar, #2A2F3A); border-radius: 3px; }
 
 /* ─── Logo theme switching ──────────────────────────────────────────────────── */
-/* Login page logos */
+/* Login page logos: light version hidden by default (dark theme default) */
 .logo-for-light { display: none !important; }
 [data-theme="light"] .logo-for-dark { display: none !important; }
 [data-theme="light"] .logo-for-light { display: block !important; }
 
-/* Topbar brand logos */
+/* Topbar brand logo: single img, src swapped via JS in applyTheme() */
 .brand-logo { height: 26px !important; width: 26px !important; object-fit: contain; flex-shrink: 0; }
-.brand-logo-light { display: none !important; }
-[data-theme="light"] .brand-logo-dark { display: none !important; }
-[data-theme="light"] .brand-logo-light { display: inline-block !important; }
 
 /* ─── Login ─────────────────────────────────────────────────────────────────── */
 .login-screen {
