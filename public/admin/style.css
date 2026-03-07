@@ -613,8 +613,8 @@ select.theme-select {
   .main-area[data-mobile-view="feed"] #typing-indicators { display: none; }
   .main-area[data-mobile-view="compose"] .feed-header { display: none; }
   .main-area[data-mobile-view="compose"] #feed { display: none; }
-  /* Toolbar wrapping on mobile */
-  .compose-toolbar { flex-wrap: wrap; }
-  .toolbar-left { flex-wrap: wrap; flex: 1 1 100%; }
-  .toolbar-right { flex: 1 1 100%; justify-content: flex-end; padding-top: 8px; border-top: 1px solid var(--border); margin-top: 6px; }
+  /* Toolbar layout on mobile: stack vertically */
+  .compose-toolbar { flex-direction: column; align-items: stretch; gap: 0; }
+  .toolbar-left { flex-wrap: wrap; }
+  .toolbar-right { justify-content: flex-end; padding-top: 8px; border-top: 1px solid var(--border); margin-top: 6px; }
 }

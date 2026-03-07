@@ -1248,6 +1248,10 @@ function bindTopbarEvents() {
         openMobileSettings();
         return;
       }
+      if (view === 'theme') {
+        showMobileThemeModal();
+        return;
+      }
       document.querySelectorAll('.mobile-nav-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
 
