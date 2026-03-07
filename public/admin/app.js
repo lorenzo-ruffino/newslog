@@ -237,9 +237,9 @@ function applyTheme(theme) {
   if (moonIcon) moonIcon.classList.toggle('hidden', theme === 'light');
   // Update logo srcs based on theme
   const brandLogo = document.getElementById('brand-logo-img');
-  if (brandLogo) brandLogo.src = theme === 'light' ? '/logo-square-dark.jpg' : '/logo-square-light.jpg';
+  if (brandLogo) brandLogo.src = theme === 'light' ? '/logo-square-light.jpg' : '/logo-square-dark.jpg';
   const loginLogo = document.getElementById('login-logo-img');
-  if (loginLogo) loginLogo.src = theme === 'light' ? '/logo-rect-dark.jpg' : '/logo-rect-light.jpg';
+  if (loginLogo) loginLogo.src = theme === 'light' ? '/logo-rect-light.jpg' : '/logo-rect-dark.jpg';
 }
 
 // ─── Blogs ────────────────────────────────────────────────────────────────────

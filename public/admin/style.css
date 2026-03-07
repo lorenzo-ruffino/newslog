@@ -100,7 +100,7 @@ img { max-width: 100%; }
 }
 .topbar-left { display: flex; align-items: center; gap: 10px; }
 .topbar-brand { display: flex; align-items: center; gap: 7px; font-weight: 700; font-size: 0.9rem; color: var(--text); }
-.brand-logo { height: 24px; width: auto; display: block; }
+.brand-logo { display: block; border-radius: 4px; }
 .topbar-blog-info { display: flex; align-items: center; gap: 8px; margin-left: 8px; padding-left: 12px; border-left: 1px solid var(--border); }
 .topbar-blog-title { font-weight: 600; font-size: 0.875rem; color: var(--text); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .topbar-blog-badge {
