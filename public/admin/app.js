@@ -1616,13 +1616,13 @@ async function loadBackupModal() {
   container.innerHTML = `
     <div style="display:flex;flex-direction:column;gap:16px;">
 
-      <div style="background:var(--bg2);border-radius:8px;padding:14px;">
+      <div style="background:var(--bg-raised);border-radius:8px;padding:14px;">
         <div style="font-weight:600;margin-bottom:4px;">${t('backup.download')}</div>
         <div style="font-size:0.8rem;color:var(--text3);margin-bottom:10px;">${t('backup.download_desc')}</div>
         <button class="btn-primary" id="btn-download-backup">${t('backup.download')}</button>
       </div>
 
-      <div style="background:var(--bg2);border-radius:8px;padding:14px;">
+      <div style="background:var(--bg-raised);border-radius:8px;padding:14px;">
         <div style="font-weight:600;margin-bottom:4px;">${t('backup.restore_from_file')}</div>
         <div style="font-size:0.8rem;color:var(--text3);margin-bottom:10px;">${t('backup.restore_confirm')}</div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -1633,7 +1633,7 @@ async function loadBackupModal() {
       </div>
 
       ${s3Enabled ? `
-      <div style="background:var(--bg2);border-radius:8px;padding:14px;">
+      <div style="background:var(--bg-raised);border-radius:8px;padding:14px;">
         <div style="font-weight:600;margin-bottom:4px;">${t('backup.s3_section')}</div>
         <div style="font-size:0.8rem;color:var(--text3);margin-bottom:10px;">${t('backup.s3_desc')}</div>
         <button class="btn-secondary" id="btn-s3-backup">${t('backup.s3_backup_now')}</button>
