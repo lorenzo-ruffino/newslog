@@ -706,6 +706,8 @@ function connectPublicSSE(slug) {
 
   sse.addEventListener('new_entry', (e) => {
     const entry = JSON.parse(e.data);
+    // Always play sound for new entries
+    playNewEntrySound(entry.entry_type);
     // Deduplicate: may have been inserted immediately by publishEntry()
     if (document.getElementById(`entry-${entry.id}`)) return;
     state.entries.unshift(entry);
@@ -719,8 +721,6 @@ function connectPublicSSE(slug) {
     }
     refreshFeedCount();
     updatePreviewIframe();
-    // Play sound for new entries
-    playNewEntrySound(entry.entry_type);
   });
 
   sse.addEventListener('update_entry', (e) => {
