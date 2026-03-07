@@ -83,10 +83,16 @@ function renderWidgetHtml(blog, entries, settings, locale) {
     live: 'LIVE', paused: 'PAUSED', ended: 'ENDED',
     new_updates: 'New updates', powered_by: 'Powered by NewsLog',
     breaking: 'BREAKING', pinned: 'PINNED', summary: 'SUMMARY',
+    enable_notifications: 'Enable notifications',
+    notifications_enabled: 'Notifications enabled',
+    notification_title: '{{blog_title}} — Breaking',
   } : {
     live: 'IN DIRETTA', paused: 'IN PAUSA', ended: 'TERMINATO',
     new_updates: 'Nuovi aggiornamenti', powered_by: 'Powered by NewsLog',
     breaking: 'BREAKING', pinned: 'IN EVIDENZA', summary: 'RIEPILOGO',
+    enable_notifications: 'Attiva notifiche',
+    notifications_enabled: 'Notifiche attive',
+    notification_title: '{{blog_title}} — Breaking',
   };
 
   const entryStyle = layout.entry_style || 'card';

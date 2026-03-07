@@ -1841,6 +1841,17 @@ function unlockAudioCtx() {
 document.addEventListener('click', unlockAudioCtx, { passive: true });
 document.addEventListener('touchend', unlockAudioCtx, { passive: true });
 
+// Keep AudioContext alive — play silent buffer every 25s to prevent browser suspension
+setInterval(() => {
+  if (!audioCtx || !state.soundEnabled) return;
+  if (audioCtx.state === 'suspended') { audioCtx.resume().catch(() => {}); return; }
+  const buf = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
+  const src = audioCtx.createBufferSource();
+  src.buffer = buf;
+  src.connect(audioCtx.destination);
+  src.start();
+}, 25000);
+
 function playNewEntrySound(type = 'update') {
   if (!state.soundEnabled) return;
   try {
