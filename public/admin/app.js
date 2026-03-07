@@ -427,6 +427,15 @@ function refreshFeedCount() {
   if (countEl) countEl.textContent = t('blog.entries_count', { count: state.entries.length });
 }
 
+// Returns the DOM node before which a new (non-pinned) entry should be inserted,
+// so that pinned entries always stay at the top.
+function getNewEntryInsertPoint(feed, newEntryIsPinned) {
+  if (newEntryIsPinned) return feed.firstChild;
+  const pinnedEntries = feed.querySelectorAll('.feed-entry.pinned');
+  if (pinnedEntries.length) return pinnedEntries[pinnedEntries.length - 1].nextSibling;
+  return feed.firstChild;
+}
+
 // ─── Composer ─────────────────────────────────────────────────────────────────
 function bindComposerEvents() {
   const editor = document.getElementById('compose-editor');
@@ -629,11 +638,14 @@ async function publishEntry() {
   // Get HTML content, strip embed URLs, then append embed HTML
   let htmlContent = editor.innerHTML.trim();
   for (const embed of state.pendingEmbeds) {
-    // Remove any plain-text URL that was resolved
-    htmlContent = htmlContent.replace(new RegExp(embed.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), '').trim();
+    const escapedUrl = embed.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Remove anchor tags wrapping the URL (browser auto-linkifies pasted URLs)
+    htmlContent = htmlContent.replace(new RegExp(`<a[^>]*>\\s*${escapedUrl}\\s*<\\/a>`, 'g'), '');
+    // Remove plain-text URL that was resolved
+    htmlContent = htmlContent.replace(new RegExp(escapedUrl, 'g'), '').trim();
   }
   // Clean up empty tags left after URL removal
-  htmlContent = htmlContent.replace(/<p>\s*<\/p>/g, '').replace(/<div>\s*<\/div>/g, '').trim();
+  htmlContent = htmlContent.replace(/<p>\s*<br\s*\/?>\s*<\/p>/g, '').replace(/<p>\s*<\/p>/g, '').replace(/<div>\s*<\/div>/g, '').trim();
 
   let fullContent = htmlContent;
   for (const embed of state.pendingEmbeds) {
@@ -661,7 +673,8 @@ async function publishEntry() {
         // Remove empty state if present
         const empty = feed.querySelector('[style*="text-align:center"]');
         if (empty) empty.remove();
-        feed.insertBefore(createEntryElement(entry), feed.firstChild);
+        const el = createEntryElement(entry);
+        feed.insertBefore(el, getNewEntryInsertPoint(feed, entry.is_pinned));
       }
       refreshFeedCount();
     }
@@ -694,10 +707,10 @@ function connectPublicSSE(slug) {
     const feed = document.getElementById('feed');
     if (feed) {
       const el = createEntryElement(entry);
-      feed.insertBefore(el, feed.firstChild);
       // Remove empty state
       const empty = feed.querySelector('[style*="text-align:center"]');
       if (empty) empty.remove();
+      feed.insertBefore(el, getNewEntryInsertPoint(feed, entry.is_pinned));
     }
     refreshFeedCount();
     updatePreviewIframe();
@@ -845,9 +858,9 @@ function updatePreviewIframe() {
 
 // ─── Theme Panel ──────────────────────────────────────────────────────────────
 
-function renderThemePanel() {
+function renderThemePanel(panel) {
   if (!state.activeBlog) return;
-  const panel = document.getElementById('theme-panel');
+  panel = panel || document.getElementById('theme-panel');
   if (!panel) return;
 
   let settings = {};
@@ -1028,6 +1041,19 @@ async function saveTheme() {
   } catch (err) {
     toast(err.message, 'error');
   }
+}
+
+function showMobileThemeModal() {
+  if (!state.activeBlog) {
+    toast(t('blog.select_blog') || 'Seleziona un blog prima', 'error');
+    return;
+  }
+  showModal({
+    title: t('common.theme'),
+    body: `<div id="mobile-theme-panel" style="max-height:60vh;overflow-y:auto;"></div>`,
+    actions: [{ label: t('common.close'), cls: 'btn-secondary', action: closeModal }],
+  });
+  renderThemePanel(document.getElementById('mobile-theme-panel'));
 }
 
 // ─── Members Panel ────────────────────────────────────────────────────────────
@@ -1254,6 +1280,7 @@ function bindTopbarEvents() {
     if (state.soundEnabled) playNewEntrySound('update');
   });
   document.getElementById('mobile-btn-profile')?.addEventListener('click', () => { closeMobileSettings(); showProfileModal(); });
+  document.getElementById('mobile-btn-theme')?.addEventListener('click', () => { closeMobileSettings(); showMobileThemeModal(); });
   document.getElementById('mobile-btn-users')?.addEventListener('click', () => { closeMobileSettings(); showUsersModal(); });
   document.getElementById('mobile-btn-backup')?.addEventListener('click', () => { closeMobileSettings(); showBackupModal(); });
   document.getElementById('mobile-btn-logout')?.addEventListener('click', async () => {
@@ -1349,11 +1376,11 @@ function showOnboardingModal() {
       <div style="display:flex;flex-direction:column;gap:12px;">
         <div>
           <label style="font-size:0.8rem;color:var(--text3);display:block;margin-bottom:4px;">${t('onboarding.first_name')} <span style="color:var(--accent);">*</span></label>
-          <input type="text" id="onboard-name" placeholder="Es. Mario" style="width:100%;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text1);" required>
+          <input type="text" id="onboard-name" placeholder="Es. Mario" style="width:100%;padding:8px;background:var(--bg-raised);border:1px solid var(--border);border-radius:6px;color:var(--text);" required>
         </div>
         <div>
           <label style="font-size:0.8rem;color:var(--text3);display:block;margin-bottom:4px;">${t('onboarding.last_name')} <span style="color:var(--accent);">*</span></label>
-          <input type="text" id="onboard-surname" placeholder="Es. Rossi" style="width:100%;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text1);" required>
+          <input type="text" id="onboard-surname" placeholder="Es. Rossi" style="width:100%;padding:8px;background:var(--bg-raised);border:1px solid var(--border);border-radius:6px;color:var(--text);" required>
         </div>
         <div>
           <label style="font-size:0.8rem;color:var(--text3);display:block;margin-bottom:4px;">${t('onboarding.avatar_optional')}</label>
@@ -1438,7 +1465,7 @@ function showProfileModal() {
         <input type="file" id="profile-avatar-input" accept="image/*" style="display:none;">
         <div style="width:100%;display:flex;flex-direction:column;gap:8px;margin-top:8px;">
           <label style="font-size:0.8rem;color:var(--text3);">${t('profile.name_label')}</label>
-          <input type="text" id="profile-name-input" value="${escHtml(user.name || '')}" placeholder="${t('profile.name_placeholder')}" style="width:100%;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text1);">
+          <input type="text" id="profile-name-input" value="${escHtml(user.name || '')}" placeholder="${t('profile.name_placeholder')}" style="width:100%;padding:8px;background:var(--bg-raised);border:1px solid var(--border);border-radius:6px;color:var(--text);">
         </div>
         <div style="width:100%;font-size:0.8rem;color:var(--text3);">${escHtml(user.email)}</div>
         <p id="profile-status" style="color:var(--text3);font-size:0.8rem;min-height:1em;"></p>
@@ -1797,16 +1824,29 @@ function insertAtCursor(textarea, text) {
 
 // ─── Sound ────────────────────────────────────────────────────────────────────
 let audioCtx = null;
+
+// Unlock AudioContext on first user gesture (required after page refresh)
+function unlockAudioCtx() {
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume().catch(() => {});
+  }
+}
+document.addEventListener('click', unlockAudioCtx, { passive: true });
+document.addEventListener('touchend', unlockAudioCtx, { passive: true });
+
 function playNewEntrySound(type = 'update') {
   if (!state.soundEnabled) return;
   try {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
     const ctx = audioCtx;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);
     gain.connect(ctx.destination);
-    // Breaking: two beeps, higher pitch; normal: one soft beep
+    // Breaking: two sharp beeps high pitch
+    // Pinned: two soft ascending notes (warm chime)
+    // Others: one soft beep
     if (type === 'breaking') {
       osc.frequency.value = 880;
       gain.gain.setValueAtTime(0.25, ctx.currentTime);
@@ -1821,6 +1861,23 @@ function playNewEntrySound(type = 'update') {
       gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
       osc2.start(ctx.currentTime + 0.25);
       osc2.stop(ctx.currentTime + 0.45);
+    } else if (type === 'pinned') {
+      // Warm ascending chime: C5 (523Hz) → E5 (659Hz)
+      osc.type = 'sine';
+      osc.frequency.value = 523;
+      gain.gain.setValueAtTime(0.18, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.28);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.28);
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.connect(gain2); gain2.connect(ctx.destination);
+      osc2.type = 'sine';
+      osc2.frequency.value = 659;
+      gain2.gain.setValueAtTime(0.15, ctx.currentTime + 0.22);
+      gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+      osc2.start(ctx.currentTime + 0.22);
+      osc2.stop(ctx.currentTime + 0.5);
     } else {
       osc.frequency.value = 660;
       gain.gain.setValueAtTime(0.15, ctx.currentTime);

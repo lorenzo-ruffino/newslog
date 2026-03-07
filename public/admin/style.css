@@ -555,7 +555,7 @@ select.theme-select {
 }
 .mobile-settings-btn {
   width: 100%; text-align: left; padding: 13px 14px;
-  border-radius: 10px; background: var(--bg2);
+  border-radius: 10px; background: var(--bg-raised);
   font-size: 0.9rem; color: var(--text);
 }
 .mobile-settings-btn.danger { color: #ef4444; }
@@ -613,4 +613,8 @@ select.theme-select {
   .main-area[data-mobile-view="feed"] #typing-indicators { display: none; }
   .main-area[data-mobile-view="compose"] .feed-header { display: none; }
   .main-area[data-mobile-view="compose"] #feed { display: none; }
+  /* Toolbar wrapping on mobile */
+  .compose-toolbar { flex-wrap: wrap; }
+  .toolbar-left { flex-wrap: wrap; flex: 1 1 100%; }
+  .toolbar-right { flex: 1 1 100%; justify-content: flex-end; padding-top: 8px; border-top: 1px solid var(--border); margin-top: 6px; }
 }

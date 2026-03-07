@@ -179,6 +179,18 @@ router.post('/blogs/:slug/entries', requireAuth, requireBlogAccess, (req, res) =
   const sanitized = sanitize(content);
   const isPinned = entry_type === 'pinned' ? 1 : 0;
 
+  // If new entry is pinned, unpin all previously pinned entries for this blog
+  if (isPinned) {
+    const prevPinned = db.prepare('SELECT id FROM entries WHERE blog_id = ? AND is_pinned = 1').all(blog.id);
+    if (prevPinned.length) {
+      db.prepare('UPDATE entries SET is_pinned = 0, entry_type = \'update\', updated_at = datetime(\'now\') WHERE blog_id = ? AND is_pinned = 1').run(blog.id);
+      prevPinned.forEach(p => {
+        const updated = formatEntry(db.prepare('SELECT * FROM entries WHERE id = ?').get(p.id), db);
+        broadcastToPublic(blog.slug, 'update_entry', updated, p.id);
+      });
+    }
+  }
+
   db.prepare(`
     INSERT INTO entries (id, blog_id, author_id, content, entry_type, is_pinned)
     VALUES (?, ?, ?, ?, ?, ?)
@@ -257,6 +269,19 @@ router.post('/blogs/:slug/entries/:id/pin', requireAuth, requireBlogAccess, (req
   const newPinned = entry.is_pinned ? 0 : 1;
   // When unpinning a 'pinned'-type entry, revert it to 'update'
   const newType = (newPinned === 0 && entry.entry_type === 'pinned') ? 'update' : entry.entry_type;
+
+  // If pinning, first unpin all other pinned entries for this blog
+  if (newPinned === 1) {
+    const prevPinned = db.prepare('SELECT id FROM entries WHERE blog_id = ? AND is_pinned = 1 AND id != ?').all(blog.id, entry.id);
+    if (prevPinned.length) {
+      db.prepare('UPDATE entries SET is_pinned = 0, entry_type = \'update\', updated_at = datetime(\'now\') WHERE blog_id = ? AND is_pinned = 1 AND id != ?').run(blog.id, entry.id);
+      prevPinned.forEach(p => {
+        const updated = formatEntry(db.prepare('SELECT * FROM entries WHERE id = ?').get(p.id), db);
+        broadcastToPublic(blog.slug, 'update_entry', updated, p.id);
+      });
+    }
+  }
+
   db.prepare('UPDATE entries SET is_pinned = ?, entry_type = ?, updated_at = datetime(\'now\') WHERE id = ?').run(newPinned, newType, entry.id);
 
   const updated = formatEntry(db.prepare('SELECT * FROM entries WHERE id = ?').get(entry.id), db);
