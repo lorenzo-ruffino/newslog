@@ -1848,23 +1848,22 @@ function playNewEntrySound(type = 'update') {
     const gain = ctx.createGain();
     osc.connect(gain);
     gain.connect(ctx.destination);
-    // Breaking: two sharp beeps high pitch
-    // Pinned: two soft ascending notes (warm chime)
-    // Others: one soft beep
+    // update:   single soft sine "ding" (low, short)
+    // breaking: three harsh square-wave beeps (urgent alarm)
+    // pinned:   two soft ascending sine chime (warm)
     if (type === 'breaking') {
-      osc.frequency.value = 880;
-      gain.gain.setValueAtTime(0.25, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.2);
-      const osc2 = ctx.createOscillator();
-      const gain2 = ctx.createGain();
-      osc2.connect(gain2); gain2.connect(ctx.destination);
-      osc2.frequency.value = 1100;
-      gain2.gain.setValueAtTime(0.2, ctx.currentTime + 0.25);
-      gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
-      osc2.start(ctx.currentTime + 0.25);
-      osc2.stop(ctx.currentTime + 0.45);
+      // Three rapid square-wave beeps — clearly alarming
+      [0, 0.18, 0.36].forEach((offset) => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type = 'square';
+        o.frequency.value = 960;
+        g.gain.setValueAtTime(0.12, ctx.currentTime + offset);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.13);
+        o.start(ctx.currentTime + offset);
+        o.stop(ctx.currentTime + offset + 0.13);
+      });
     } else if (type === 'pinned') {
       // Warm ascending chime: C5 (523Hz) → E5 (659Hz)
       osc.type = 'sine';
@@ -1883,11 +1882,13 @@ function playNewEntrySound(type = 'update') {
       osc2.start(ctx.currentTime + 0.22);
       osc2.stop(ctx.currentTime + 0.5);
     } else {
-      osc.frequency.value = 660;
-      gain.gain.setValueAtTime(0.15, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+      // Single soft sine ding
+      osc.type = 'sine';
+      osc.frequency.value = 440;
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22);
       osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.18);
+      osc.stop(ctx.currentTime + 0.22);
     }
   } catch (_) {}
 }
