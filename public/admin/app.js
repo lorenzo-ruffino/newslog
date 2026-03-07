@@ -1864,19 +1864,16 @@ function playNewEntrySound(type = 'update') {
     const ctx = audioCtx;
     const now = ctx.currentTime;
     if (type === 'breaking') {
-      // Urgent alarm: 3 loud sawtooth beeps, high pitch, long duration
-      [0, 0.25, 0.5].forEach((offset) => {
-        const o = ctx.createOscillator();
-        const g = ctx.createGain();
-        o.connect(g); g.connect(ctx.destination);
-        o.type = 'sawtooth';
-        o.frequency.setValueAtTime(880, now + offset);
-        o.frequency.linearRampToValueAtTime(1200, now + offset + 0.15);
-        g.gain.setValueAtTime(0.25, now + offset);
-        g.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.2);
-        o.start(now + offset);
-        o.stop(now + offset + 0.2);
-      });
+      // Single triangle-wave beep, higher pitch than update
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = 'triangle';
+      o.frequency.value = 660;
+      g.gain.setValueAtTime(0.15, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+      o.start(now);
+      o.stop(now + 0.25);
     } else if (type === 'pinned') {
       // Warm ascending chime: C5 → E5
       const o1 = ctx.createOscillator();
