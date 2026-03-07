@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NewsLog</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="icon" href="/logo-square-light.jpg">
+  <meta name="description" content="NewsLog — Live Blog Platform">
+</head>
+<body>
+
+<!-- Login Screen -->
+<div id="login-screen" class="login-screen hidden">
+  <div class="login-box">
+    <div class="login-logo">
+      <img src="/logo-rect-light.jpg" alt="NewsLog" style="height:48px;">
+    </div>
+    <div id="login-form-view">
+      <h2 id="login-title" data-i18n="auth.login_title">Accedi a NewsLog</h2>
+      <p id="login-heading" data-i18n="auth.login_heading">Inserisci la tua email per ricevere un link di accesso</p>
+      <form id="login-form">
+        <input type="email" id="login-email" data-i18n-placeholder="auth.email_placeholder" placeholder="La tua email" required autocomplete="email">
+        <button type="submit" id="login-btn" data-i18n="auth.send_link">Invia link di accesso</button>
+      </form>
+      <p class="login-error hidden" id="login-error"></p>
+    </div>
+    <div id="login-sent-view" class="hidden">
+      <h2 data-i18n="auth.check_email">Controlla la tua email</h2>
+      <p id="login-sent-desc"></p>
+    </div>
+  </div>
+</div>
+
+<!-- App Shell -->
+<div id="app" class="app hidden">
+  <!-- Topbar -->
+  <header class="topbar" id="topbar">
+    <div class="topbar-left">
+      <button class="hamburger" id="hamburger-btn" aria-label="Menu">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor"><rect y="3" width="18" height="2" rx="1"/><rect y="8" width="18" height="2" rx="1"/><rect y="13" width="18" height="2" rx="1"/></svg>
+      </button>
+      <div class="topbar-brand">
+        <svg width="22" height="22" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="16" fill="#2563EB"/><text x="50%" y="50%" text-anchor="middle" dy=".35em" fill="white" font-size="16" font-weight="700" font-family="sans-serif">N</text></svg>
+        <span class="brand-name">Liveblog</span>
+      </div>
+      <div class="topbar-blog-info" id="topbar-blog-info" style="display:none;">
+        <span class="topbar-blog-title" id="topbar-blog-title"></span>
+        <button class="btn-icon btn-icon-sm" id="btn-rename-blog" style="display:none;" data-i18n-title="ui.rename_blog" title="Rinomina blog">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+        <div class="blog-status-menu-wrapper" id="blog-status-menu-wrapper">
+          <button class="topbar-blog-badge" id="topbar-blog-badge" data-i18n-title="blog.status_change" title="Cambia stato">
+            <span id="topbar-blog-badge-text"></span>
+            <svg class="badge-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="blog-status-dropdown hidden" id="blog-status-dropdown">
+            <button data-status="live">
+              <span class="dropdown-status-dot live"></span> <span data-i18n="blog.status_live">In diretta</span>
+            </button>
+            <button data-status="paused">
+              <span class="dropdown-status-dot paused"></span> <span data-i18n="blog.status_paused">In pausa</span>
+            </button>
+            <button data-status="ended" class="dropdown-status-ended">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg> <span data-i18n="blog.close_liveblog">Chiudi liveblog</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="topbar-center" id="topbar-presence"></div>
+    <div class="topbar-right">
+      <button class="btn-icon" id="btn-embed-snippet" title="Embed snippet" style="display:none;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      </button>
+      <button class="btn-icon" id="btn-export" data-i18n-title="blog.export_html" title="Esporta HTML" style="display:none;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>
+      <button class="btn-icon" id="btn-sound-toggle" data-i18n-title="ui.sound_toggle" title="Attiva/disattiva suono" aria-label="Toggle sound">
+        <svg width="16" height="16" id="icon-sound-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>
+        <svg width="16" height="16" id="icon-sound-off" class="hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+      </button>
+      <button class="btn-icon" id="btn-theme-toggle" title="Toggle theme" aria-label="Toggle theme">
+        <svg width="16" height="16" class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <svg width="16" height="16" class="icon-moon hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+      </button>
+      <div class="locale-switch">
+        <button id="btn-locale-it" class="locale-btn" data-locale="it">IT</button>
+        <button id="btn-locale-en" class="locale-btn" data-locale="en">EN</button>
+      </div>
+      <div class="user-menu-wrapper">
+        <button class="user-menu-btn" id="user-menu-btn">
+          <div class="avatar-sm" id="user-avatar"></div>
+          <span id="user-name-display"></span>
+        </button>
+        <div class="user-dropdown hidden" id="user-dropdown">
+          <button id="btn-profile" data-i18n="profile.title">Profilo</button>
+          <button id="btn-users-manage" data-i18n="users.manage">Gestione Utenti</button>
+          <button id="btn-backup-manage" data-i18n="backup.title">Backup</button>
+          <hr>
+          <button id="btn-logout" data-i18n="auth.logout">Esci</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Layout -->
+  <div class="layout" id="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar" style="width:260px;min-width:160px;max-width:480px;">
+      <div class="sidebar-section">
+        <div class="sidebar-section-title" id="sidebar-blogs-label" data-i18n="sidebar.your_blogs">I tuoi blog</div>
+        <div id="blogs-list" class="blogs-list"></div>
+      </div>
+      <div class="sidebar-actions">
+        <button class="btn-primary w-full" id="btn-new-blog" style="display:none;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <span id="btn-new-blog-text">Nuovo Live Blog</span>
+        </button>
+      </div>
+    </aside>
+
+    <div class="col-resizer" id="resizer-left" data-i18n-title="ui.drag_resize" title="Trascina per ridimensionare"></div>
+
+    <!-- Main -->
+    <main class="main-area" id="main-area">
+      <!-- Empty state -->
+      <div id="empty-state" class="empty-state">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".3"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <p id="empty-state-text" data-i18n="blog.empty_state">Seleziona un live blog dalla sidebar o creane uno nuovo.</p>
+      </div>
+
+      <!-- Blog workspace -->
+      <div id="workspace" class="workspace hidden">
+        <!-- Composer -->
+        <div class="composer" id="composer">
+          <div class="entry-type-selector" id="entry-type-selector">
+            <button class="type-btn active" data-type="update" id="type-update" data-i18n="editor.type_update">Aggiornamento</button>
+            <button class="type-btn" data-type="breaking" id="type-breaking" data-i18n="editor.type_breaking">Breaking</button>
+            <button class="type-btn" data-type="pinned" id="type-pinned" data-i18n="editor.type_pinned">In evidenza</button>
+            <button class="type-btn" data-type="summary" id="type-summary" data-i18n="editor.type_summary">Riepilogo</button>
+          </div>
+          <div class="compose-area">
+            <div id="compose-editor" class="compose-editor" contenteditable="true" data-placeholder="Scrivi un aggiornamento… Incolla un URL per generare un embed automatico."></div>
+            <div id="embed-previews" class="embed-previews"></div>
+            <div class="compose-toolbar">
+              <div class="toolbar-left">
+                <button class="tool-btn" id="tool-bold" data-i18n-title="toolbar.bold" title="Grassetto (Ctrl+B)"><b>B</b></button>
+                <button class="tool-btn" id="tool-italic" data-i18n-title="toolbar.italic" title="Corsivo (Ctrl+I)"><i>I</i></button>
+                <button class="tool-btn" id="tool-link" data-i18n-title="toolbar.link" title="Inserisci link (Ctrl+K)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+                </button>
+                <div class="toolbar-sep"></div>
+                <button class="tool-btn" id="tool-image" data-i18n-title="toolbar.image" title="Carica immagine">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                </button>
+                <button class="tool-btn" id="tool-video" data-i18n-title="toolbar.video" title="Carica video">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+                </button>
+                <button class="tool-btn" id="tool-audio" data-i18n-title="toolbar.audio" title="Carica audio">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                </button>
+                <div class="toolbar-sep"></div>
+                <button class="tool-btn" id="tool-ul" data-i18n-title="toolbar.ul" title="Elenco puntato">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/><circle cx="4" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="4" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="4" cy="18" r="1" fill="currentColor" stroke="none"/></svg>
+                </button>
+                <button class="tool-btn" id="tool-ol" data-i18n-title="toolbar.ol" title="Elenco numerato">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><path d="M4 6h1v4" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M4 10h2" stroke="currentColor" stroke-width="1.5"/><path d="M6 14H4l2 2-2 2h2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+                </button>
+                <div class="toolbar-sep"></div>
+                <button class="tool-btn" id="tool-h2" title="Titolo H2" style="font-size:0.7rem;font-weight:700;">H2</button>
+                <button class="tool-btn" id="tool-h3" title="Titolo H3" style="font-size:0.7rem;font-weight:700;">H3</button>
+                <div class="toolbar-sep"></div>
+                <button class="tool-btn" id="tool-embed" title="Embed URL">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                </button>
+              </div>
+              <div class="toolbar-right">
+                <span class="char-count" id="char-count">0 caratteri</span>
+                <button class="btn-publish" id="btn-publish" disabled>Pubblica</button>
+              </div>
+            </div>
+            <div id="embed-url-field" class="embed-url-field hidden">
+              <input type="url" id="embed-url-input" data-i18n-placeholder="editor.embed_url_placeholder" placeholder="Incolla un URL per incorporarlo...">
+              <button id="btn-embed-resolve">OK</button>
+              <button id="btn-embed-close">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <input type="file" id="file-input" accept="image/*,video/*,audio/*" class="hidden">
+          </div>
+        </div>
+
+        <!-- Typing indicators -->
+        <div id="typing-indicators" class="typing-indicators"></div>
+
+        <!-- Feed -->
+        <div class="feed-header">
+          <span id="feed-count" class="feed-count"></span>
+          <input type="search" id="feed-search" class="feed-search" data-i18n-placeholder="ui.search_updates" placeholder="Cerca aggiornamenti..." autocomplete="off">
+        </div>
+        <div id="feed" class="feed"></div>
+      </div>
+    </main>
+
+    <div class="col-resizer" id="resizer-right" data-i18n-title="ui.drag_resize" title="Trascina per ridimensionare"></div>
+
+    <!-- Right panel -->
+    <aside class="right-panel" id="right-panel" style="width:380px;min-width:240px;max-width:600px;">
+      <div class="right-panel-tabs">
+        <button class="tab-btn active" data-tab="preview" id="tab-preview" data-i18n="common.preview">Anteprima</button>
+        <button class="tab-btn" data-tab="theme" id="tab-theme" data-i18n="common.theme">Tema</button>
+        <button class="tab-btn" data-tab="members" id="tab-members" data-i18n="common.members">Membri</button>
+      </div>
+
+      <!-- Preview tab -->
+      <div class="tab-content active" id="tab-content-preview">
+        <div class="preview-label" data-i18n="ui.preview_label">Anteprima widget</div>
+        <iframe id="preview-iframe" class="preview-iframe" frameborder="0"></iframe>
+      </div>
+
+      <!-- Theme tab -->
+      <div class="tab-content" id="tab-content-theme">
+        <div class="theme-panel" id="theme-panel"></div>
+      </div>
+
+      <!-- Members tab -->
+      <div class="tab-content" id="tab-content-members">
+        <div class="members-panel" id="members-panel"></div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Mobile bottom nav -->
+  <nav class="mobile-nav" id="mobile-nav">
+    <button class="mobile-nav-btn active" data-view="blogs">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+      <span>Blog</span>
+    </button>
+    <button class="mobile-nav-btn" data-view="compose">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14m-7-7h14"/></svg>
+      <span data-i18n="nav.compose">Componi</span>
+    </button>
+    <button class="mobile-nav-btn" data-view="feed">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      <span data-i18n="nav.feed">Feed</span>
+    </button>
+    <button class="mobile-nav-btn" data-view="settings">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
+      <span data-i18n="common.settings">Impostazioni</span>
+    </button>
+  </nav>
+
+  <!-- Right panel drawer (mobile) -->
+  <div class="drawer-backdrop hidden" id="drawer-backdrop"></div>
+</div>
+
+<!-- Mobile settings sheet -->
+<div id="mobile-settings-sheet" class="mobile-settings-sheet">
+  <div class="mobile-settings-header">
+    <span id="mobile-settings-title" data-i18n="common.settings">Impostazioni</span>
+    <button class="btn-icon" id="mobile-settings-close">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="mobile-settings-body">
+    <div id="mobile-user-info" style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg2);border-radius:10px;margin-bottom:4px;">
+      <div class="avatar-sm" id="mobile-avatar" style="width:40px;height:40px;font-size:1.1rem;flex-shrink:0;"></div>
+      <div>
+        <div id="mobile-user-name" style="font-weight:600;font-size:0.95rem;"></div>
+        <div id="mobile-user-email" style="font-size:0.78rem;color:var(--text3);"></div>
+      </div>
+    </div>
+
+    <div class="mobile-settings-row">
+      <span data-i18n="theme.mode"></span>
+      <button id="mobile-theme-toggle" class="btn-icon">
+        <svg width="16" height="16" class="icon-sun-m" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <svg width="16" height="16" class="icon-moon-m hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+      </button>
+    </div>
+
+    <div class="mobile-settings-row">
+      <span data-i18n="common.settings" style="display:none"></span>
+      <span>IT / EN</span>
+      <div class="locale-switch" style="display:flex;">
+        <button class="locale-btn" data-locale="it">IT</button>
+        <button class="locale-btn" data-locale="en">EN</button>
+      </div>
+    </div>
+
+    <div class="mobile-settings-row">
+      <span data-i18n="ui.sound_toggle"></span>
+      <button id="mobile-sound-toggle" class="btn-icon">
+        <svg width="16" height="16" id="icon-sound-on-m" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>
+        <svg width="16" height="16" id="icon-sound-off-m" class="hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+      </button>
+    </div>
+
+    <div class="mobile-settings-divider"></div>
+
+    <button class="mobile-settings-btn" id="mobile-btn-profile" data-i18n="profile.title">Profilo</button>
+    <button class="mobile-settings-btn" id="mobile-btn-users" data-i18n="users.manage" style="display:none;">Gestione Utenti</button>
+    <button class="mobile-settings-btn" id="mobile-btn-backup" data-i18n="backup.title" style="display:none;">Backup</button>
+
+    <div class="mobile-settings-divider"></div>
+
+    <button class="mobile-settings-btn danger" id="mobile-btn-logout" data-i18n="auth.logout">Esci</button>
+  </div>
+</div>
+
+<!-- Modals -->
+<div id="modal-overlay" class="modal-overlay hidden">
+  <div id="modal-box" class="modal-box">
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toasts" class="toasts"></div>
+
+<script src="/app.js"></script>
+</body>
+</html>

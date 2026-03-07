@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  newslog:
+    build: .
+    container_name: newslog
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - .env
