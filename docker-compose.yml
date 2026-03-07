@@ -1,8 +1,6 @@
-version: "3.8"
-
 services:
   newslog:
-    build: .
+    image: ghcr.io/lorenzo-ruffino/newslog:latest
     container_name: newslog
     restart: unless-stopped
     ports:
