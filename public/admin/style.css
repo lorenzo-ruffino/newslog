@@ -50,6 +50,12 @@ img { max-width: 100%; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--scrollbar, #2A2F3A); border-radius: 3px; }
 
+/* ─── Logo theme switching ──────────────────────────────────────────────────── */
+:root .logo-for-light,
+[data-theme="dark"] .logo-for-light { display: none; }
+[data-theme="light"] .logo-for-dark { display: none; }
+[data-theme="light"] .logo-for-light { display: block; }
+
 /* ─── Login ─────────────────────────────────────────────────────────────────── */
 .login-screen {
   position: fixed; inset: 0;
