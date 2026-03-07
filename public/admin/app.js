@@ -667,6 +667,8 @@ async function publishEntry() {
       entry_type: state.entryType,
     });
 
+    // Play sound immediately on publish
+    if (entry) playNewEntrySound(entry.entry_type || state.entryType);
     // Immediately insert into feed
     if (entry && entry.id) {
       // Remove existing element if SSE beat us to it
@@ -706,8 +708,10 @@ function connectPublicSSE(slug) {
 
   sse.addEventListener('new_entry', (e) => {
     const entry = JSON.parse(e.data);
-    // Always play sound for new entries
-    playNewEntrySound(entry.entry_type);
+    // Play sound for entries from others (own entries play sound in publishEntry)
+    if (!document.getElementById(`entry-${entry.id}`)) {
+      playNewEntrySound(entry.entry_type);
+    }
     // Deduplicate: may have been inserted immediately by publishEntry()
     if (document.getElementById(`entry-${entry.id}`)) return;
     state.entries.unshift(entry);
