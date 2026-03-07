@@ -51,10 +51,16 @@ img { max-width: 100%; }
 ::-webkit-scrollbar-thumb { background: var(--scrollbar, #2A2F3A); border-radius: 3px; }
 
 /* ─── Logo theme switching ──────────────────────────────────────────────────── */
-:root .logo-for-light,
-[data-theme="dark"] .logo-for-light { display: none; }
-[data-theme="light"] .logo-for-dark { display: none; }
-[data-theme="light"] .logo-for-light { display: block; }
+/* Login page logos */
+.logo-for-light { display: none !important; }
+[data-theme="light"] .logo-for-dark { display: none !important; }
+[data-theme="light"] .logo-for-light { display: block !important; }
+
+/* Topbar brand logos */
+.brand-logo { height: 26px !important; width: 26px !important; object-fit: contain; flex-shrink: 0; }
+.brand-logo-light { display: none !important; }
+[data-theme="light"] .brand-logo-dark { display: none !important; }
+[data-theme="light"] .brand-logo-light { display: inline-block !important; }
 
 /* ─── Login ─────────────────────────────────────────────────────────────────── */
 .login-screen {
