@@ -1849,51 +1849,52 @@ function playNewEntrySound(type = 'update') {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
     const ctx = audioCtx;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    // update:   single soft sine "ding" (low, short)
-    // breaking: three harsh square-wave beeps (urgent alarm)
-    // pinned:   two soft ascending sine chime (warm)
+    const now = ctx.currentTime;
     if (type === 'breaking') {
-      // Three rapid square-wave beeps — clearly alarming
-      [0, 0.18, 0.36].forEach((offset) => {
+      // Urgent alarm: 3 loud sawtooth beeps, high pitch, long duration
+      [0, 0.25, 0.5].forEach((offset) => {
         const o = ctx.createOscillator();
         const g = ctx.createGain();
         o.connect(g); g.connect(ctx.destination);
-        o.type = 'square';
-        o.frequency.value = 960;
-        g.gain.setValueAtTime(0.12, ctx.currentTime + offset);
-        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.13);
-        o.start(ctx.currentTime + offset);
-        o.stop(ctx.currentTime + offset + 0.13);
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(880, now + offset);
+        o.frequency.linearRampToValueAtTime(1200, now + offset + 0.15);
+        g.gain.setValueAtTime(0.25, now + offset);
+        g.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.2);
+        o.start(now + offset);
+        o.stop(now + offset + 0.2);
       });
     } else if (type === 'pinned') {
-      // Warm ascending chime: C5 (523Hz) → E5 (659Hz)
-      osc.type = 'sine';
-      osc.frequency.value = 523;
-      gain.gain.setValueAtTime(0.18, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.28);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.28);
-      const osc2 = ctx.createOscillator();
-      const gain2 = ctx.createGain();
-      osc2.connect(gain2); gain2.connect(ctx.destination);
-      osc2.type = 'sine';
-      osc2.frequency.value = 659;
-      gain2.gain.setValueAtTime(0.15, ctx.currentTime + 0.22);
-      gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-      osc2.start(ctx.currentTime + 0.22);
-      osc2.stop(ctx.currentTime + 0.5);
+      // Warm ascending chime: C5 → E5
+      const o1 = ctx.createOscillator();
+      const g1 = ctx.createGain();
+      o1.connect(g1); g1.connect(ctx.destination);
+      o1.type = 'sine';
+      o1.frequency.value = 523;
+      g1.gain.setValueAtTime(0.18, now);
+      g1.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+      o1.start(now);
+      o1.stop(now + 0.28);
+      const o2 = ctx.createOscillator();
+      const g2 = ctx.createGain();
+      o2.connect(g2); g2.connect(ctx.destination);
+      o2.type = 'sine';
+      o2.frequency.value = 659;
+      g2.gain.setValueAtTime(0.15, now + 0.22);
+      g2.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+      o2.start(now + 0.22);
+      o2.stop(now + 0.5);
     } else {
       // Single soft sine ding
-      osc.type = 'sine';
-      osc.frequency.value = 440;
-      gain.gain.setValueAtTime(0.12, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.22);
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = 'sine';
+      o.frequency.value = 440;
+      g.gain.setValueAtTime(0.12, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+      o.start(now);
+      o.stop(now + 0.22);
     }
   } catch (_) {}
 }
