@@ -151,10 +151,6 @@
       removeEntry(id);
     });
 
-    eventSource.addEventListener('pin_entry', (e) => {
-      const { id, is_pinned } = JSON.parse(e.data);
-      // Move pinned entry to top
-    });
 
     eventSource.addEventListener('blog_status', (e) => {
       const { status } = JSON.parse(e.data);
@@ -218,9 +214,15 @@
 
   function updateEntry(entry) {
     const el = document.getElementById(`nl-entry-${entry.id}`);
-    if (el) {
-      const newEl = buildEntryEl(entry);
-      el.replaceWith(newEl);
+    if (!el) return;
+    const feed = document.getElementById('nl-feed');
+    const wasPinned = el.classList.contains('nl-entry-pinned-top');
+    const newEl = buildEntryEl(entry);
+    el.replaceWith(newEl);
+    // Reposition if pin state changed
+    if (!!entry.is_pinned !== wasPinned && feed) {
+      const insertPoint = getInsertPoint(feed, entry.is_pinned);
+      feed.insertBefore(newEl, insertPoint);
     }
   }
 
