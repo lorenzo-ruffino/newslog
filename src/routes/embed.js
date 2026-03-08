@@ -147,7 +147,17 @@ function renderWidgetHtml(blog, entries, settings, locale, timezone, totalEntrie
   const conversationMode = entryStyle === 'conversation';
   const widgetTitle = settings.widget_title || 'Liveblog';
 
+  // Build author position map from chronological order (oldest first) across ALL entries
   const authorPosMap = new Map();
+  if (conversationMode) {
+    const authorOrder = db.prepare(`
+      SELECT author_id, MIN(created_at) as first_at
+      FROM entries WHERE blog_id = ?
+      GROUP BY author_id ORDER BY first_at ASC
+    `).all(blog.id);
+    authorOrder.forEach(r => authorPosMap.set(r.author_id, authorPosMap.size % 2));
+  }
+
   const entriesHtml = entries.map(entry => renderEntry(entry, entryStyle, showAvatars, showTimestamps, labels, locale, timezone, authorPosMap)).join('');
 
   return `<!DOCTYPE html>
@@ -219,7 +229,7 @@ function renderEntry(entry, style, showAvatars, showTimestamps, labels, locale, 
 
   const dateStr = showTimestamps ? formatDate(entry.created_at, locale, timezone) : '';
 
-  return `<div class="nl-entry ${typeClass} ${pinnedClass}" id="nl-entry-${entry.id}" data-id="${entry.id}" data-created-at="${entry.created_at}" data-updated-at="${entry.updated_at || entry.created_at}" data-author-pos="${authorPos}">
+  return `<div class="nl-entry ${typeClass} ${pinnedClass}" id="nl-entry-${entry.id}" data-id="${entry.id}" data-created-at="${entry.created_at}" data-updated-at="${entry.updated_at || entry.created_at}" data-author-id="${entry.author_id}" data-author-pos="${authorPos}">
     ${entry.is_pinned ? `<div class="nl-pinned-banner">${labels.pinned}</div>` : ''}
     <div class="nl-entry-header">
       ${showAvatars && entry.author_avatar ? `<img src="${escapeHtml(entry.author_avatar)}" class="nl-avatar" alt="${escapeHtml(entry.author_name)}" loading="lazy">` : ''}
