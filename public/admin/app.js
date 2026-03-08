@@ -650,10 +650,15 @@ async function publishEntry() {
         a.replaceWith(document.createTextNode(''));
       }
     });
-    // Remove any remaining plain-text occurrences via regex on innerHTML
-    // Use a regex that handles both & and &amp; in query strings
-    const escapedUrl = embed.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/&amp;|&/g, '(?:&amp;|&)');
-    clone.innerHTML = clone.innerHTML.replace(new RegExp(escapedUrl, 'g'), '').trim();
+    // Walk all text nodes and remove the URL string directly (avoids innerHTML &amp; encoding issues on mobile)
+    const walker = document.createTreeWalker(clone, NodeFilter.SHOW_TEXT);
+    const textNodes = [];
+    while (walker.nextNode()) textNodes.push(walker.currentNode);
+    for (const node of textNodes) {
+      if (node.nodeValue && node.nodeValue.includes(embed.url)) {
+        node.nodeValue = node.nodeValue.split(embed.url).join('').trim();
+      }
+    }
   }
   let htmlContent = clone.innerHTML.trim();
   // Clean up empty/whitespace-only tags and stray <br> left after URL removal
