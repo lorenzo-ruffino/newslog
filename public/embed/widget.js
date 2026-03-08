@@ -1,4 +1,16 @@
 /* NewsLog Widget JS — loaded inside the embed iframe */
+
+// Set data-width on Twitter blockquotes BEFORE widgets.js processes them.
+// Twitter renders iframe content at the width specified in data-width (default 550px).
+// This must run before widgets.js loads (async), which this script guarantees since
+// it is loaded synchronously and appears before widgets.js in the HTML.
+document.querySelectorAll('blockquote.twitter-tweet').forEach(function(bq) {
+  var container = bq.closest('.nl-embed-tweet') || bq.closest('.nl-entry-content') || bq.parentElement;
+  var w = container ? container.offsetWidth : 0;
+  if (!w) w = document.querySelector('.nl-container')?.offsetWidth || window.innerWidth || 0;
+  if (w > 0) bq.setAttribute('data-width', String(Math.floor(Math.min(w, 550))));
+});
+
 (function () {
   'use strict';
 
