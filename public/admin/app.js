@@ -1046,7 +1046,7 @@ function renderThemePanel(panel) {
     el.addEventListener('change', () => updateThemePreview());
   });
   panel.querySelector('#theme-widget-title')?.addEventListener('input', () => updateThemePreview());
-  panel.querySelector('#btn-save-theme')?.addEventListener('click', saveTheme);
+  panel.querySelector('#btn-save-theme')?.addEventListener('click', () => saveTheme(panel));
 }
 
 function colorRow(name, label, value) {
@@ -1064,13 +1064,16 @@ function updateThemePreview() {
   setTimeout(() => updatePreviewIframe(), 100);
 }
 
-async function saveTheme() {
+async function saveTheme(contextPanel) {
   if (!state.activeBlog) return;
 
-  const getColor = id => document.getElementById(`color-${id}`)?.value;
-  const getMode = () => document.querySelector('[data-mode].active')?.dataset.mode || 'light';
-  const getLayoutStyle = () => document.querySelector('[data-layout-style].active')?.dataset.layoutStyle || 'card';
-  const getWidgetLocale = () => document.querySelector('[data-widget-locale].active')?.dataset.widgetLocale || 'it';
+  // Use the panel that triggered the save to read values, avoiding conflicts
+  // when both desktop (#theme-panel) and mobile modal panels exist in the DOM.
+  const ctx = contextPanel || document.getElementById('theme-panel') || document;
+  const getColor = id => ctx.querySelector(`#color-${id}`)?.value || document.getElementById(`color-${id}`)?.value;
+  const getMode = () => ctx.querySelector('[data-mode].active')?.dataset.mode || 'light';
+  const getLayoutStyle = () => ctx.querySelector('[data-layout-style].active')?.dataset.layoutStyle || 'card';
+  const getWidgetLocale = () => ctx.querySelector('[data-widget-locale].active')?.dataset.widgetLocale || 'it';
 
   let existing = {};
   try { existing = typeof state.activeBlog.settings === 'string' ? JSON.parse(state.activeBlog.settings) : (state.activeBlog.settings || {}); } catch {}
@@ -1080,7 +1083,7 @@ async function saveTheme() {
     locale: getWidgetLocale(),
     theme: {
       mode: getMode(),
-      widget_title: document.getElementById('theme-widget-title')?.value || '',
+      widget_title: (ctx.querySelector('#theme-widget-title') || document.getElementById('theme-widget-title'))?.value || '',
       colors: {
         primary: getColor('primary') || '#2563EB',
         breaking: getColor('breaking') || '#DC2626',
@@ -1089,14 +1092,14 @@ async function saveTheme() {
         live_badge_bg: getColor('live_badge_bg') || '#16A34A',
       },
       typography: {
-        font_family: document.getElementById('theme-font')?.value || 'system',
+        font_family: (ctx.querySelector('#theme-font') || document.getElementById('theme-font'))?.value || 'system',
       },
       layout: {
         entry_style: getLayoutStyle(),
-        max_width: document.getElementById('theme-maxwidth')?.value || '720px',
-        show_avatars: document.getElementById('theme-avatars')?.checked !== false,
-        show_timestamps: document.getElementById('theme-timestamps')?.checked !== false,
-        show_entry_count: document.getElementById('theme-count')?.checked !== false,
+        max_width: (ctx.querySelector('#theme-maxwidth') || document.getElementById('theme-maxwidth'))?.value || '720px',
+        show_avatars: (ctx.querySelector('#theme-avatars') || document.getElementById('theme-avatars'))?.checked !== false,
+        show_timestamps: (ctx.querySelector('#theme-timestamps') || document.getElementById('theme-timestamps'))?.checked !== false,
+        show_entry_count: (ctx.querySelector('#theme-count') || document.getElementById('theme-count'))?.checked !== false,
       },
     },
   };
