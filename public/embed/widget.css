@@ -79,9 +79,11 @@ body { font-family: var(--nl-font, -apple-system, BlinkMacSystemFont, 'Segoe UI'
 .nl-pinned-banner {
   background: var(--nl-pinned, #F59E0B); color: #fff;
   font-size: 0.62rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
-  padding: 3px 10px; margin: -14px -16px 10px;
+  padding: 3px 10px; margin-bottom: 10px;
   border-radius: 7px 7px 0 0;
 }
+.nl-widget[data-style="card"] .nl-pinned-banner { margin: -14px -16px 10px; }
+.nl-widget[data-style="timeline"] .nl-pinned-banner { margin: 0 0 10px -24px; padding-left: 24px; }
 
 /* Entry content */
 .nl-entry-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
@@ -122,9 +124,9 @@ body { font-family: var(--nl-font, -apple-system, BlinkMacSystemFont, 'Segoe UI'
 .nl-embed-tweet .twitter-tweet iframe { max-width: 100% !important; }
 
 /* Conversation mode */
-.nl-widget[data-conversation="true"] .nl-feed { gap: 8px; }
+.nl-widget[data-conversation="true"] .nl-feed { display: flex; flex-direction: column; gap: 8px; }
 .nl-widget[data-conversation="true"] .nl-entry {
-  max-width: 80%; border-radius: 16px; padding: 10px 14px;
+  width: 80%; border-radius: 16px; padding: 10px 14px;
   border: none; border-left: none !important;
   background: var(--nl-surface, #F8FAFC);
   overflow: hidden; min-width: 0;
@@ -142,7 +144,6 @@ body { font-family: var(--nl-font, -apple-system, BlinkMacSystemFont, 'Segoe UI'
   align-self: flex-start;
   border-radius: 16px 16px 16px 4px;
 }
-.nl-widget[data-conversation="true"] .nl-feed { display: flex; flex-direction: column; }
 
 /* Embeds */
 .nl-embed { margin-top: 10px; }
