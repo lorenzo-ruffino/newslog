@@ -458,32 +458,24 @@
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  // ─── Constrain and sandbox third-party Twitter/X iframes ──────────────────
-  // Twitter widgets.js creates iframes with fixed inline widths (550px) that
-  // overflow on mobile (especially iOS Safari). Also sandbox them to prevent
-  // navigation hijacking on mobile tab restore.
-  function constrainTwitterEmbeds(root) {
-    const els = root.querySelectorAll ? root.querySelectorAll('twitter-widget, twitterwidget, .twitter-tweet-rendered, iframe') : [];
-    for (const el of els) {
-      const src = el.src || '';
-      const isTwitter = el.tagName?.toLowerCase().includes('twitter') || src.includes('platform.twitter.com') || src.includes('platform.x.com');
-      if (!isTwitter) continue;
-      el.style.maxWidth = '100%';
-      el.style.width = '100%';
-      if (el.tagName === 'IFRAME') {
-        if (!el.sandbox || !el.sandbox.length) {
-          el.sandbox = 'allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox';
-        }
-      }
-    }
+  // ─── Constrain and sandbox third-party Twitter/X embeds ───────────────────
+  // Twitter widgets.js replaces blockquotes with <twitter-widget> custom elements
+  // that have a fixed inline width (550px). This overflows on iOS Safari where
+  // overflow:hidden alone doesn't clip custom elements properly.
+  // We watch for these elements and force their width, with retries since Twitter
+  // sets the width asynchronously after inserting the element.
+  function constrainTwitterEl(el) {
+    el.style.setProperty('max-width', '100%', 'important');
+    el.style.setProperty('width', '100%', 'important');
   }
-  new MutationObserver((mutations) => {
-    for (const m of mutations) {
-      for (const node of m.addedNodes) {
-        if (node.nodeType !== 1) continue;
-        constrainTwitterEmbeds(node.parentElement || document.body);
-      }
-    }
+  function constrainAllTwitterEmbeds() {
+    document.querySelectorAll('.nl-embed-tweet twitter-widget, .nl-embed-tweet twitterwidget, .nl-embed-tweet iframe[src*="twitter.com"], .nl-embed-tweet iframe[src*="x.com"]').forEach(constrainTwitterEl);
+  }
+  new MutationObserver(() => {
+    constrainAllTwitterEmbeds();
+    // Twitter sets width asynchronously — retry after a short delay
+    setTimeout(constrainAllTwitterEmbeds, 300);
+    setTimeout(constrainAllTwitterEmbeds, 1000);
   }).observe(document.body, { childList: true, subtree: true });
 
   // ─── Load more (pagination) ──────────────────────────────────────────────
