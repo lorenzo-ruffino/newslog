@@ -471,37 +471,20 @@
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  // ─── Scale Twitter/X embeds to fit container ─────────────────────────────
-  // Twitter widgets.js uses Shadow DOM with a fixed 550px internal width.
-  // CSS cannot penetrate Shadow DOM, so we scale the entire widget down
-  // to fit its container using transform: scale().
-  function scaleTwitterEmbeds() {
-    document.querySelectorAll('.nl-embed-tweet').forEach(container => {
-      const widget = container.querySelector('twitter-widget') || container.querySelector('twitterwidget');
-      if (!widget) return;
-      const containerWidth = container.offsetWidth;
-      const naturalWidth = widget.shadowRoot
-        ? widget.offsetWidth / (parseFloat(widget.style.transform?.match(/scale\(([^)]+)\)/)?.[1]) || 1)
-        : widget.offsetWidth;
-      if (naturalWidth > containerWidth && containerWidth > 0) {
-        const scale = containerWidth / naturalWidth;
-        widget.style.transform = `scale(${scale})`;
-        widget.style.transformOrigin = 'top left';
-        container.style.height = (widget.offsetHeight * scale) + 'px';
-      }
+  // ─── Constrain Twitter/X embeds ──────────────────────────────────────────
+  // Twitter widgets.js renders at 550px fixed width. On iOS Safari, iframes
+  // expand to fit their content, so the embed page body grows beyond the
+  // viewport. The CSS overflow-x:hidden + max-width:100vw on html/body
+  // prevents this. Here we also force the widget element width as a fallback.
+  function constrainTwitterWidgets() {
+    document.querySelectorAll('twitter-widget, twitterwidget').forEach(el => {
+      el.style.setProperty('max-width', '100%', 'important');
     });
   }
   new MutationObserver(() => {
-    setTimeout(scaleTwitterEmbeds, 500);
-    setTimeout(scaleTwitterEmbeds, 2000);
+    constrainTwitterWidgets();
+    setTimeout(constrainTwitterWidgets, 1000);
   }).observe(document.body, { childList: true, subtree: true });
-  // Periodically check for the first 10 seconds to catch late renders
-  let twitterFixCount = 0;
-  const twitterFixInterval = setInterval(() => {
-    scaleTwitterEmbeds();
-    if (++twitterFixCount >= 10) clearInterval(twitterFixInterval);
-  }, 1000);
-  window.addEventListener('resize', scaleTwitterEmbeds);
 
   // ─── Load more (pagination) ──────────────────────────────────────────────
   const loadMoreBtn = document.getElementById('nl-load-more');

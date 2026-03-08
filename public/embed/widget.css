@@ -1,7 +1,7 @@
 /* NewsLog Widget CSS */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: auto; }
-body { font-family: var(--nl-font, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif); color: var(--nl-text, #1E293B); background: var(--nl-bg, #FFFFFF); }
+html { height: auto; overflow-x: hidden; width: 100%; max-width: 100vw; }
+body { font-family: var(--nl-font, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif); color: var(--nl-text, #1E293B); background: var(--nl-bg, #FFFFFF); overflow-x: hidden; width: 100%; max-width: 100vw; }
 
 .nl-widget { padding: 0; }
 .nl-container { margin: 0 auto; padding: 16px; }
