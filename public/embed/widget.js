@@ -32,21 +32,40 @@
   window.addEventListener('load', notifyResize);
 
   // ─── Scroll detection ─────────────────────────────────────────────────────
+  // The widget runs inside an auto-resized iframe, so the iframe itself never
+  // scrolls — scrolling happens in the parent page. Use IntersectionObserver
+  // on a sentinel element at the top of the feed to detect if the user has
+  // scrolled past it.
   const feed = document.getElementById('nl-feed');
   const newUpdatesBar = document.getElementById('nl-new-updates-bar');
 
   if (feed) {
-    window.addEventListener('scroll', () => {
-      hasScrolledUp = window.scrollY > 50;
-      if (!hasScrolledUp && newUpdatesBar) {
-        newUpdatesBar.style.display = 'none';
-        pendingNewEntries = 0;
-      }
-    });
+    const sentinel = document.createElement('div');
+    sentinel.id = 'nl-scroll-sentinel';
+    sentinel.style.height = '1px';
+    feed.parentNode.insertBefore(sentinel, feed);
+
+    if ('IntersectionObserver' in window) {
+      const scrollObserver = new IntersectionObserver((entries) => {
+        // sentinel is not visible → user has scrolled down past the top
+        hasScrolledUp = !entries[0].isIntersecting;
+        if (!hasScrolledUp && newUpdatesBar) {
+          newUpdatesBar.style.display = 'none';
+          pendingNewEntries = 0;
+        }
+      }, { threshold: 0 });
+      scrollObserver.observe(sentinel);
+    }
   }
 
   window.nlScrollToTop = function () {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Scroll the parent page to bring the iframe/sentinel into view
+    const sentinel = document.getElementById('nl-scroll-sentinel');
+    if (sentinel) {
+      sentinel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
     if (newUpdatesBar) newUpdatesBar.style.display = 'none';
     pendingNewEntries = 0;
   };
