@@ -252,14 +252,12 @@
         notifyResize();
         playBeep();
       }
-      // Update existing entries content (handles edits)
+      // Update existing entries if they were edited (compare updated_at timestamp)
       for (const entry of entries) {
         const el = document.getElementById(`nl-entry-${entry.id}`);
-        if (el) {
-          const contentEl = el.querySelector('.nl-entry-content');
-          if (contentEl && contentEl.innerHTML !== entry.content) {
-            updateEntry(entry);
-          }
+        if (el && entry.updated_at && el.dataset.updatedAt !== entry.updated_at) {
+          el.dataset.updatedAt = entry.updated_at;
+          updateEntry(entry);
         }
       }
     } catch (_) {}
@@ -343,7 +341,7 @@
     const el = document.getElementById(`nl-entry-${entry.id}`);
     if (!el) return;
     const feed = document.getElementById('nl-feed');
-    const newEl = buildEntryEl(entry);
+    const newEl = buildEntryEl(entry, true);
     el.replaceWith(newEl);
     if (feed) ensurePinnedOrder(feed);
   }
@@ -369,13 +367,15 @@
     badge.innerHTML = (status === 'live' ? '' : '') + (txt || status.toUpperCase());
   }
 
-  function buildEntryEl(entry) {
+  function buildEntryEl(entry, skipAnimation) {
     const el = document.createElement('div');
     const typeClass = entry.entry_type !== 'update' ? ` nl-entry-${entry.entry_type}` : '';
     const pinnedClass = entry.is_pinned ? ' nl-entry-pinned-top' : '';
     el.className = `nl-entry${typeClass}${pinnedClass}`;
+    if (skipAnimation) el.style.animation = 'none';
     el.id = `nl-entry-${entry.id}`;
     el.dataset.id = entry.id;
+    if (entry.updated_at) el.dataset.updatedAt = entry.updated_at;
 
     const authorName = entry.author?.name || 'Unknown';
     const authorAvatar = entry.author?.avatar_url;
