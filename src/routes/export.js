@@ -76,6 +76,7 @@ async function generateStaticHtml(blog, opts, db) {
   try { settings = JSON.parse(blog.settings || '{}'); } catch {}
 
   const locale = settings.locale || process.env.DEFAULT_LOCALE || 'it';
+  const timezone = process.env.TIMEZONE || 'Europe/Rome';
   const entries = db.prepare(`
     SELECT e.*, u.name as author_name, u.avatar_url as author_avatar
     FROM entries e JOIN users u ON u.id = e.author_id
@@ -86,7 +87,7 @@ async function generateStaticHtml(blog, opts, db) {
   const baseUrl = process.env.BASE_URL || '';
   const authors = [...new Set(entries.map(e => e.author_name))];
   const lastEntry = entries.find(e => !e.is_pinned);
-  const dateStr = lastEntry ? formatDate(lastEntry.created_at, locale) : formatDate(blog.created_at, locale);
+  const dateStr = lastEntry ? formatDate(lastEntry.created_at, locale, timezone) : formatDate(blog.created_at, locale, timezone);
 
   const labels = locale === 'en' ? {
     breaking: 'BREAKING', pinned: 'PINNED', summary: 'SUMMARY',
@@ -100,7 +101,7 @@ async function generateStaticHtml(blog, opts, db) {
     authors_count: `${authors.length} autori`,
   };
 
-  const entriesHtml = entries.map(e => renderExportEntry(e, opts, labels, locale, baseUrl, opts.inline_images)).join('\n');
+  const entriesHtml = entries.map(e => renderExportEntry(e, opts, labels, locale, timezone, baseUrl, opts.inline_images)).join('\n');
 
   return `<!-- Inizio NewsLog Export: "${blog.title}" -->
 <div class="newslog-export" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:${opts.max_width};margin:0 auto;color:#1E293B;background:#fff;padding:24px;">
@@ -120,7 +121,7 @@ async function generateStaticHtml(blog, opts, db) {
 <!-- Fine NewsLog Export -->`;
 }
 
-function renderExportEntry(entry, opts, labels, locale, baseUrl = '', inlineImages = true) {
+function renderExportEntry(entry, opts, labels, locale, timezone, baseUrl = '', inlineImages = true) {
   const borderColor = entry.entry_type === 'breaking' ? '#DC2626'
     : entry.is_pinned ? '#F59E0B'
     : entry.entry_type === 'summary' ? '#0D9488'
@@ -134,7 +135,7 @@ function renderExportEntry(entry, opts, labels, locale, baseUrl = '', inlineImag
     ? `<span style="background:#0D9488;color:#fff;font-size:0.7rem;font-weight:700;padding:2px 6px;border-radius:3px;margin-right:8px;">${labels.summary}</span>`
     : '';
 
-  const timeStr = formatDate(entry.created_at, locale);
+  const timeStr = formatDate(entry.created_at, locale, timezone);
   const initials = (entry.author_name || 'U')[0].toUpperCase();
 
   return `<div id="nl-export-${entry.id}" style="border-left:3px solid ${borderColor};padding:12px 16px;margin-bottom:16px;background:#F8FAFC;border-radius:0 6px 6px 0;">
@@ -154,12 +155,14 @@ function renderExportEntry(entry, opts, labels, locale, baseUrl = '', inlineImag
 }
 
 
-function formatDate(dateStr, locale) {
-  const d = new Date(dateStr);
+function formatDate(dateStr, locale, timezone) {
+  const normalized = typeof dateStr === 'string' && !dateStr.endsWith('Z') && !dateStr.includes('+') ? dateStr + 'Z' : dateStr;
+  const d = new Date(normalized);
   if (isNaN(d)) return dateStr;
   return d.toLocaleString(locale === 'en' ? 'en-US' : 'it-IT', {
     day: 'numeric', month: 'long', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
+    timeZone: timezone || 'Europe/Rome',
   });
 }
 

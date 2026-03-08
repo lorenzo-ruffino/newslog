@@ -415,7 +415,9 @@
   }
 
   function formatDate(dateStr) {
-    const d = new Date(dateStr);
+    // SQLite CURRENT_TIMESTAMP is UTC but without 'Z' suffix — ensure UTC parsing
+    const normalized = typeof dateStr === 'string' && !dateStr.endsWith('Z') && !dateStr.includes('+') ? dateStr + 'Z' : dateStr;
+    const d = new Date(normalized);
     if (isNaN(d)) return '';
     return d.toLocaleString(locale === 'en' ? 'en-US' : 'it-IT', {
       day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: timezone,

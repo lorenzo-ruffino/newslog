@@ -116,7 +116,7 @@ function renderWidgetHtml(blog, entries, settings, locale, timezone, totalEntrie
   const widgetTitle = settings.widget_title || 'Liveblog';
 
   const authorPosMap = new Map();
-  const entriesHtml = entries.map(entry => renderEntry(entry, entryStyle, showAvatars, showTimestamps, labels, locale, authorPosMap)).join('');
+  const entriesHtml = entries.map(entry => renderEntry(entry, entryStyle, showAvatars, showTimestamps, labels, locale, timezone, authorPosMap)).join('');
 
   return `<!DOCTYPE html>
 <html lang="${locale}">
@@ -139,7 +139,7 @@ function renderWidgetHtml(blog, entries, settings, locale, timezone, totalEntrie
         ${isLive ? `<span class="nl-badge nl-badge-live" id="nl-status-badge">${labels.live}</span>` : ''}
         ${isPaused ? `<span class="nl-badge nl-badge-paused" id="nl-status-badge">${labels.paused}</span>` : ''}
         ${blog.status === 'ended' ? `<span class="nl-badge nl-badge-ended" id="nl-status-badge">${labels.ended}</span>` : ''}
-        ${showEntryCount ? `<span class="nl-entry-count" id="nl-entry-count">${entries.length}</span>` : ''}
+        ${showEntryCount ? `<span class="nl-entry-count" id="nl-entry-count">${totalEntries}</span>` : ''}
       </div>
     </div>
   </div>
@@ -172,7 +172,7 @@ function renderWidgetHtml(blog, entries, settings, locale, timezone, totalEntrie
 </html>`;
 }
 
-function renderEntry(entry, style, showAvatars, showTimestamps, labels, locale, authorPosMap) {
+function renderEntry(entry, style, showAvatars, showTimestamps, labels, locale, timezone, authorPosMap) {
   const typeClass = entry.entry_type !== 'update' ? `nl-entry-${entry.entry_type}` : '';
   const pinnedClass = entry.is_pinned ? 'nl-entry-pinned-top' : '';
   if (!authorPosMap.has(entry.author_id)) authorPosMap.set(entry.author_id, authorPosMap.size % 2);
@@ -185,7 +185,7 @@ function renderEntry(entry, style, showAvatars, showTimestamps, labels, locale, 
     ? `<span class="nl-type-badge nl-type-summary">${labels.summary}</span>`
     : '';
 
-  const dateStr = showTimestamps ? formatDate(entry.created_at, locale) : '';
+  const dateStr = showTimestamps ? formatDate(entry.created_at, locale, timezone) : '';
 
   return `<div class="nl-entry ${typeClass} ${pinnedClass}" id="nl-entry-${entry.id}" data-id="${entry.id}" data-author-pos="${authorPos}">
     ${entry.is_pinned ? `<div class="nl-pinned-banner">${labels.pinned}</div>` : ''}
@@ -200,12 +200,15 @@ function renderEntry(entry, style, showAvatars, showTimestamps, labels, locale, 
   </div>`;
 }
 
-function formatDate(dateStr, locale) {
-  const d = new Date(dateStr);
+function formatDate(dateStr, locale, timezone) {
+  // SQLite CURRENT_TIMESTAMP is UTC but without 'Z' suffix — ensure UTC parsing
+  const normalized = typeof dateStr === 'string' && !dateStr.endsWith('Z') && !dateStr.includes('+') ? dateStr + 'Z' : dateStr;
+  const d = new Date(normalized);
   if (isNaN(d)) return dateStr;
   return d.toLocaleString(locale === 'en' ? 'en-US' : 'it-IT', {
     day: 'numeric', month: 'long', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
+    timeZone: timezone || 'Europe/Rome',
   });
 }
 
@@ -215,3 +218,4 @@ function escapeHtml(str) {
 }
 
 module.exports = router;
+;
