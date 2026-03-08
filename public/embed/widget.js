@@ -32,55 +32,25 @@
   window.addEventListener('load', notifyResize);
 
   // ─── Scroll detection ─────────────────────────────────────────────────────
-  // The widget runs inside an auto-resized iframe, so the iframe viewport is
-  // the full content height — IntersectionObserver won't work. Instead, check
-  // the iframe's position in the parent page via frameElement (same-origin).
+  // The widget runs inside an auto-resized iframe (possibly cross-origin).
+  // The parent's resize.js sends scroll position via postMessage.
   const feed = document.getElementById('nl-feed');
   const newUpdatesBar = document.getElementById('nl-new-updates-bar');
 
-  function checkScrollPosition() {
-    try {
-      // Same-origin: we can access frameElement in the parent
-      const frame = window.frameElement;
-      if (frame) {
-        const rect = frame.getBoundingClientRect();
-        // If the top of the iframe is more than 200px above the viewport, user has scrolled down
-        hasScrolledUp = rect.top < -200;
+  window.addEventListener('message', (e) => {
+    if (e.data && e.data.type === 'newslog-scroll') {
+      // iframeTop < -200 means user has scrolled past the top of the widget
+      hasScrolledUp = e.data.iframeTop < -200;
+      if (!hasScrolledUp && newUpdatesBar) {
+        newUpdatesBar.style.display = 'none';
+        pendingNewEntries = 0;
       }
-    } catch (_) {
-      // Cross-origin: fall back to never showing the bar (safe default)
     }
-    if (!hasScrolledUp && newUpdatesBar) {
-      newUpdatesBar.style.display = 'none';
-      pendingNewEntries = 0;
-    }
-  }
-
-  // Check on parent scroll events (throttled via rAF)
-  try {
-    let scrollTicking = false;
-    window.parent.addEventListener('scroll', () => {
-      if (!scrollTicking) {
-        scrollTicking = true;
-        requestAnimationFrame(() => {
-          checkScrollPosition();
-          scrollTicking = false;
-        });
-      }
-    }, { passive: true });
-  } catch (_) {
-    // Cross-origin — can't listen to parent scroll
-  }
+  });
 
   window.nlScrollToTop = function () {
-    try {
-      const frame = window.frameElement;
-      if (frame) {
-        frame.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    } catch (_) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    // Ask parent to scroll the iframe into view
+    window.parent.postMessage({ type: 'newslog-scrolltop', slug: blogSlug }, '*');
     if (newUpdatesBar) newUpdatesBar.style.display = 'none';
     pendingNewEntries = 0;
   };

@@ -50,16 +50,48 @@ router.get('/:idOrSlug', (req, res) => {
 router.get('/resize.js', (req, res) => {
   res.set('Content-Type', 'application/javascript');
   res.send(`(function(){
+  var iframes = [];
+  function findIframes() {
+    iframes = Array.from(document.querySelectorAll('iframe[src*="newslog"], iframe[src*="liveblog"]'));
+  }
   window.addEventListener('message', function(e) {
     if (e.data && e.data.type === 'newslog-resize') {
-      var iframes = document.querySelectorAll('iframe[src*="newslog"]');
+      findIframes();
       iframes.forEach(function(iframe) {
         if (iframe.contentWindow === e.source) {
           iframe.style.height = e.data.height + 'px';
         }
       });
     }
+    if (e.data && e.data.type === 'newslog-scrolltop') {
+      findIframes();
+      iframes.forEach(function(iframe) {
+        if (iframe.contentWindow === e.source) {
+          iframe.scrollIntoView({behavior: 'smooth', block: 'start'});
+        }
+      });
+    }
   });
+  // Send scroll position to iframes so they can show "new updates" banner
+  var ticking = false;
+  window.addEventListener('scroll', function() {
+    if (!ticking) {
+      ticking = true;
+      requestAnimationFrame(function() {
+        if (!iframes.length) findIframes();
+        iframes.forEach(function(iframe) {
+          try {
+            var rect = iframe.getBoundingClientRect();
+            iframe.contentWindow.postMessage({
+              type: 'newslog-scroll',
+              iframeTop: rect.top
+            }, '*');
+          } catch(_) {}
+        });
+        ticking = false;
+      });
+    }
+  }, {passive: true});
 })();`);
 });
 
