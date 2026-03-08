@@ -7,9 +7,13 @@
   const locale = script?.dataset.locale || 'it';
   const timezone = script?.dataset.timezone || 'Europe/Rome';
   const isLive = script?.dataset.live === 'true';
+  const pageSize = parseInt(script?.dataset.pageSize) || 50;
+  let totalEntries = parseInt(script?.dataset.total) || 0;
   let labels = {};
   try { labels = JSON.parse(script?.dataset.labels || '{}'); } catch {}
 
+  let currentPage = 1;
+  let loadingMore = false;
   let lastEntryId = null;
   let eventSource = null;
   let reconnectDelay = 1000;
@@ -422,6 +426,48 @@
     if (!str) return '';
     return str.toString()
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  // ─── Load more (pagination) ──────────────────────────────────────────────
+  const loadMoreBtn = document.getElementById('nl-load-more');
+  if (loadMoreBtn) {
+    loadMoreBtn.addEventListener('click', loadMore);
+  }
+
+  async function loadMore() {
+    if (loadingMore) return;
+    loadingMore = true;
+    if (loadMoreBtn) loadMoreBtn.disabled = true;
+
+    currentPage++;
+    try {
+      const resp = await fetch(`/api/blogs/${blogSlug}/entries?page=${currentPage}&limit=${pageSize}`);
+      if (!resp.ok) { currentPage--; return; }
+      const data = await resp.json();
+      const entries = data.entries || [];
+      const feed = document.getElementById('nl-feed');
+      if (!feed) return;
+
+      for (const entry of entries) {
+        if (document.getElementById(`nl-entry-${entry.id}`)) continue;
+        const el = buildEntryEl(entry);
+        feed.appendChild(el);
+        if (window.twttr?.widgets) window.twttr.widgets.load(el);
+      }
+
+      totalEntries = data.total || totalEntries;
+      const rendered = feed.querySelectorAll('.nl-entry').length;
+      if (rendered >= totalEntries || entries.length < pageSize) {
+        if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+      }
+
+      notifyResize();
+    } catch (_) {
+      currentPage--;
+    } finally {
+      loadingMore = false;
+      if (loadMoreBtn) loadMoreBtn.disabled = false;
+    }
   }
 
   // ─── Search filter ────────────────────────────────────────────────────────

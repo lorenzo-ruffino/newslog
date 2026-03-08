@@ -28,19 +28,22 @@ router.get('/:idOrSlug', (req, res) => {
   let settings = {};
   try { settings = JSON.parse(blog.settings || '{}'); } catch {}
 
+  const pageSize = parseInt(process.env.EMBED_PAGE_SIZE) || 50;
+  const totalEntries = db.prepare('SELECT COUNT(*) as cnt FROM entries WHERE blog_id = ?').get(blog.id).cnt;
+
   const entries = db.prepare(`
     SELECT e.*, u.name as author_name, u.avatar_url as author_avatar
     FROM entries e
     JOIN users u ON u.id = e.author_id
     WHERE e.blog_id = ?
     ORDER BY e.is_pinned DESC, e.created_at DESC
-    LIMIT 50
-  `).all(blog.id);
+    LIMIT ?
+  `).all(blog.id, pageSize);
 
   const locale = settings.locale || process.env.DEFAULT_LOCALE || 'it';
   const timezone = process.env.TIMEZONE || 'Europe/Rome';
 
-  res.send(renderWidgetHtml(blog, entries, settings, locale, timezone));
+  res.send(renderWidgetHtml(blog, entries, settings, locale, timezone, totalEntries, pageSize));
 });
 
 // GET /embed/resize.js — iframe auto-resize script
@@ -60,7 +63,7 @@ router.get('/resize.js', (req, res) => {
 })();`);
 });
 
-function renderWidgetHtml(blog, entries, settings, locale, timezone) {
+function renderWidgetHtml(blog, entries, settings, locale, timezone, totalEntries, pageSize) {
   const theme = settings.theme || {};
   const colors = theme.colors || {};
   const layout = theme.layout || {};
@@ -152,6 +155,7 @@ function renderWidgetHtml(blog, entries, settings, locale, timezone) {
   <div id="nl-feed" class="nl-feed">
     ${entriesHtml || '<div class="nl-empty">No updates yet.</div>'}
   </div>
+  ${totalEntries > entries.length ? `<button id="nl-load-more" class="nl-load-more">${locale === 'en' ? 'Load previous updates' : 'Carica aggiornamenti precedenti'}</button>` : ''}
 
 </div>
 <script src="/embed/widget.js?v=${WIDGET_VERSION}"
@@ -160,6 +164,8 @@ function renderWidgetHtml(blog, entries, settings, locale, timezone) {
   data-timezone="${timezone}"
   data-labels='${JSON.stringify(labels)}'
   data-live="${isLive}"
+  data-page-size="${pageSize}"
+  data-total="${totalEntries}"
 ></script>
 <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 </body>

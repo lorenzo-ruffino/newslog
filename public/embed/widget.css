@@ -152,6 +152,17 @@ body { font-family: var(--nl-font, -apple-system, BlinkMacSystemFont, 'Segoe UI'
 .nl-embed-link-body p { font-size: 0.8rem; color: var(--nl-text2, #64748B); margin-bottom: 6px; }
 .nl-embed-link-body a { font-size: 0.75rem; color: var(--nl-primary, #2563EB); }
 
+/* Load more */
+.nl-load-more {
+  display: block; width: 100%; margin-top: 12px; padding: 10px 16px;
+  border-radius: 8px; border: 1px solid var(--nl-border, #E2E8F0);
+  background: var(--nl-surface, #F8FAFC); color: var(--nl-text2, #64748B);
+  font-size: 0.875rem; font-weight: 500; cursor: pointer; font-family: inherit;
+  transition: all 0.15s;
+}
+.nl-load-more:hover { border-color: var(--nl-primary, #2563EB); color: var(--nl-primary, #2563EB); }
+.nl-load-more:disabled { opacity: 0.5; cursor: wait; }
+
 /* Footer */
 .nl-footer { text-align: center; padding: 16px 0 8px; }
 .nl-powered { font-size: 0.7rem; color: var(--nl-text2, #64748B); opacity: 0.6; }
