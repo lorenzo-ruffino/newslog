@@ -62,7 +62,7 @@
       btn.addEventListener('click', requestNotifications);
       header.appendChild(btn);
     }
-  } else if (Notification.permission === 'granted') {
+  } else if ('Notification' in window && Notification.permission === 'granted') {
     notificationsEnabled = true;
   }
 
