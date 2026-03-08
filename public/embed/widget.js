@@ -173,13 +173,11 @@
   function ensurePinnedOrder(feed) {
     const pinned = Array.from(feed.querySelectorAll('.nl-entry-pinned-top'));
     if (!pinned.length) return;
-    // Move each pinned entry to the top (before firstElementChild),
-    // preserving their mutual order.
-    const firstEl = feed.firstElementChild;
-    for (const p of pinned) {
-      if (p !== firstEl) {
-        feed.insertBefore(p, firstEl);
-      }
+    // Use feed.prepend() instead of insertBefore(p, firstElementChild) because
+    // firstElementChild can be stale on iOS Safari immediately after a DOM mutation.
+    // Reverse order preserves mutual ordering when multiple pinned entries exist.
+    for (let i = pinned.length - 1; i >= 0; i--) {
+      feed.prepend(pinned[i]);
     }
   }
 

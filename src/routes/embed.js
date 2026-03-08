@@ -3,7 +3,16 @@
 const express = require('express');
 const router = express.Router();
 const path = require('path');
+const fs = require('fs');
 const { getDb } = require('../db');
+
+// Cache-busting version based on widget.js mtime — computed once at startup
+let _widgetVersion = Date.now();
+try {
+  const stat = fs.statSync(path.join(__dirname, '../../public/embed/widget.js'));
+  _widgetVersion = stat.mtimeMs;
+} catch (_) {}
+const WIDGET_VERSION = _widgetVersion;
 
 // GET /embed/:idOrSlug — serve the embeddable widget page
 // Accepts numeric rowid (stable even if blog is renamed) or slug (legacy)
@@ -112,7 +121,7 @@ function renderWidgetHtml(blog, entries, settings, locale, timezone) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${escapeHtml(blog.title)}</title>
-<link rel="stylesheet" href="/embed/widget.css">
+<link rel="stylesheet" href="/embed/widget.css?v=${WIDGET_VERSION}">
 <style>:root { ${cssVars} }</style>
 </head>
 <body class="nl-widget" data-mode="${theme.mode || 'light'}" data-style="${entryStyle}"${conversationMode ? ' data-conversation="true"' : ''}>
@@ -145,7 +154,7 @@ function renderWidgetHtml(blog, entries, settings, locale, timezone) {
   </div>
 
 </div>
-<script src="/embed/widget.js"
+<script src="/embed/widget.js?v=${WIDGET_VERSION}"
   data-blog="${blog.slug}"
   data-locale="${locale}"
   data-timezone="${timezone}"
