@@ -99,8 +99,14 @@ app.use('/api/admin/backups', backupRouter);
 // Locale JSON files for the admin SPA
 app.use('/locales', express.static(path.join(__dirname, 'locales')));
 
-// Embed widget static files (widget.js, widget.css)
-app.use('/embed', express.static(path.join(__dirname, '..', 'public', 'embed')));
+// Embed widget static files (widget.js, widget.css) — no cache to ensure updates propagate
+app.use('/embed', express.static(path.join(__dirname, '..', 'public', 'embed'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.js') || filePath.endsWith('.css')) {
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+  }
+}));
 // Embed widget pages
 app.use('/embed', embedPageRouter);
 

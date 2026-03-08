@@ -643,7 +643,8 @@ async function publishEntry() {
   // Get HTML content, strip embed URLs, then append embed HTML
   let htmlContent = editor.innerHTML.trim();
   for (const embed of state.pendingEmbeds) {
-    const escapedUrl = embed.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Build a regex that matches the URL in both plain text and HTML-encoded form (& vs &amp;)
+    const escapedUrl = embed.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/&amp;|&/g, '(?:&amp;|&)');
     // Remove anchor tags wrapping the URL
     htmlContent = htmlContent.replace(new RegExp(`<a[^>]*>\\s*${escapedUrl}\\s*<\\/a>`, 'g'), '');
     // Remove span tags wrapping the URL (some mobile browsers)
