@@ -20,6 +20,7 @@
   let hasScrolledUp = false;
   let notificationsEnabled = false;
   let pendingNewEntries = 0;
+  const authorPosMap = new Map();
 
   // ─── Auto-resize (postMessage to parent) ──────────────────────────────────
   function notifyResize() {
@@ -36,6 +37,14 @@
   // The parent's resize.js sends scroll position via postMessage.
   const feed = document.getElementById('nl-feed');
   const newUpdatesBar = document.getElementById('nl-new-updates-bar');
+
+  // Initialize authorPosMap from server-rendered entries (ordered by appearance)
+  if (feed) {
+    feed.querySelectorAll('.nl-entry[data-author-id]').forEach(el => {
+      const aid = el.dataset.authorId;
+      if (!authorPosMap.has(aid)) authorPosMap.set(aid, parseInt(el.dataset.authorPos) || authorPosMap.size % 2);
+    });
+  }
 
   window.addEventListener('message', (e) => {
     if (e.data && e.data.type === 'newslog-scroll') {
@@ -396,6 +405,10 @@
     el.dataset.id = entry.id;
     if (entry.created_at) el.dataset.createdAt = entry.created_at;
     if (entry.updated_at) el.dataset.updatedAt = entry.updated_at;
+    const authorId = entry.author?.id || entry.author_id || 'unknown';
+    if (!authorPosMap.has(authorId)) authorPosMap.set(authorId, authorPosMap.size % 2);
+    el.dataset.authorId = authorId;
+    el.dataset.authorPos = authorPosMap.get(authorId);
 
     const authorName = entry.author?.name || 'Unknown';
     const authorAvatar = entry.author?.avatar_url;
@@ -458,28 +471,37 @@
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  // ─── Constrain Twitter/X embeds ───────────────────────────────────────────
-  // Twitter widgets.js replaces blockquotes with <twitter-widget> custom elements
-  // that have a fixed inline width (550px). On narrow screens (especially iOS
-  // Safari) this overflows the container. We continuously force width: 100%.
-  function constrainAllTwitterEmbeds() {
-    document.querySelectorAll('twitter-widget, twitterwidget').forEach(el => {
-      el.style.setProperty('max-width', '100%', 'important');
-      el.style.setProperty('width', '100%', 'important');
+  // ─── Scale Twitter/X embeds to fit container ─────────────────────────────
+  // Twitter widgets.js uses Shadow DOM with a fixed 550px internal width.
+  // CSS cannot penetrate Shadow DOM, so we scale the entire widget down
+  // to fit its container using transform: scale().
+  function scaleTwitterEmbeds() {
+    document.querySelectorAll('.nl-embed-tweet').forEach(container => {
+      const widget = container.querySelector('twitter-widget') || container.querySelector('twitterwidget');
+      if (!widget) return;
+      const containerWidth = container.offsetWidth;
+      const naturalWidth = widget.shadowRoot
+        ? widget.offsetWidth / (parseFloat(widget.style.transform?.match(/scale\(([^)]+)\)/)?.[1]) || 1)
+        : widget.offsetWidth;
+      if (naturalWidth > containerWidth && containerWidth > 0) {
+        const scale = containerWidth / naturalWidth;
+        widget.style.transform = `scale(${scale})`;
+        widget.style.transformOrigin = 'top left';
+        container.style.height = (widget.offsetHeight * scale) + 'px';
+      }
     });
   }
-  // Run on every DOM change, with retries for async Twitter rendering
   new MutationObserver(() => {
-    constrainAllTwitterEmbeds();
-    setTimeout(constrainAllTwitterEmbeds, 500);
-    setTimeout(constrainAllTwitterEmbeds, 2000);
-  }).observe(document.body, { childList: true, subtree: true, attributes: true });
-  // Also run periodically for the first 10 seconds to catch late renders
+    setTimeout(scaleTwitterEmbeds, 500);
+    setTimeout(scaleTwitterEmbeds, 2000);
+  }).observe(document.body, { childList: true, subtree: true });
+  // Periodically check for the first 10 seconds to catch late renders
   let twitterFixCount = 0;
   const twitterFixInterval = setInterval(() => {
-    constrainAllTwitterEmbeds();
+    scaleTwitterEmbeds();
     if (++twitterFixCount >= 10) clearInterval(twitterFixInterval);
   }, 1000);
+  window.addEventListener('resize', scaleTwitterEmbeds);
 
   // ─── Load more (pagination) ──────────────────────────────────────────────
   const loadMoreBtn = document.getElementById('nl-load-more');

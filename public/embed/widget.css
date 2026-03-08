@@ -118,12 +118,9 @@ body { font-family: var(--nl-font, -apple-system, BlinkMacSystemFont, 'Segoe UI'
 .nl-entry-content ol { list-style: decimal; padding-left: 20px; margin: 6px 0; }
 .nl-entry-content li { margin-bottom: 3px; }
 
-/* Tweet embed */
-.nl-embed-tweet { margin-top: 10px; overflow: hidden; }
-/* Force Twitter custom elements to fit container — !important overrides inline styles */
-twitter-widget, twitterwidget { max-width: 100% !important; width: 100% !important; }
-.nl-embed-tweet .twitter-tweet { margin: 0 !important; max-width: 100% !important; width: 100% !important; }
-.nl-embed-tweet iframe { max-width: 100% !important; }
+/* Tweet embed — JS handles scaling via transform for Shadow DOM widgets */
+.nl-embed-tweet { margin-top: 10px; overflow: hidden; position: relative; }
+.nl-embed-tweet .twitter-tweet { margin: 0 !important; }
 
 /* Conversation mode */
 .nl-widget[data-conversation="true"] .nl-feed { display: flex; flex-direction: column; gap: 8px; }
