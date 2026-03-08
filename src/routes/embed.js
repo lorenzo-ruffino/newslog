@@ -43,7 +43,7 @@ router.get('/:idOrSlug', (req, res) => {
   const locale = settings.locale || process.env.DEFAULT_LOCALE || 'it';
   const timezone = process.env.TIMEZONE || 'Europe/Rome';
 
-  res.send(renderWidgetHtml(blog, entries, settings, locale, timezone, totalEntries, pageSize));
+  res.send(renderWidgetHtml(db, blog, entries, settings, locale, timezone, totalEntries, pageSize));
 });
 
 // GET /embed/resize.js — iframe auto-resize script
@@ -95,7 +95,7 @@ router.get('/resize.js', (req, res) => {
 })();`);
 });
 
-function renderWidgetHtml(blog, entries, settings, locale, timezone, totalEntries, pageSize) {
+function renderWidgetHtml(db, blog, entries, settings, locale, timezone, totalEntries, pageSize) {
   const theme = settings.theme || {};
   const colors = theme.colors || {};
   const layout = theme.layout || {};
