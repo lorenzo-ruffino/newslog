@@ -118,11 +118,10 @@ body { font-family: var(--nl-font, -apple-system, BlinkMacSystemFont, 'Segoe UI'
 .nl-entry-content ol { list-style: decimal; padding-left: 20px; margin: 6px 0; }
 .nl-entry-content li { margin-bottom: 3px; }
 
-/* Tweet embed — the transform trick forces iOS Safari to actually clip overflow */
-.nl-embed-tweet { margin-top: 10px; overflow: hidden; transform: translateZ(0); }
-.nl-embed-tweet twitter-widget,
-.nl-embed-tweet twitterwidget,
-.nl-embed-tweet .twitter-tweet-rendered,
+/* Tweet embed */
+.nl-embed-tweet { margin-top: 10px; overflow: hidden; }
+/* Force Twitter custom elements to fit container — !important overrides inline styles */
+twitter-widget, twitterwidget { max-width: 100% !important; width: 100% !important; }
 .nl-embed-tweet .twitter-tweet { margin: 0 !important; max-width: 100% !important; width: 100% !important; }
 .nl-embed-tweet iframe { max-width: 100% !important; }
 

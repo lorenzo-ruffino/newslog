@@ -458,25 +458,28 @@
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  // ─── Constrain and sandbox third-party Twitter/X embeds ───────────────────
+  // ─── Constrain Twitter/X embeds ───────────────────────────────────────────
   // Twitter widgets.js replaces blockquotes with <twitter-widget> custom elements
-  // that have a fixed inline width (550px). This overflows on iOS Safari where
-  // overflow:hidden alone doesn't clip custom elements properly.
-  // We watch for these elements and force their width, with retries since Twitter
-  // sets the width asynchronously after inserting the element.
-  function constrainTwitterEl(el) {
-    el.style.setProperty('max-width', '100%', 'important');
-    el.style.setProperty('width', '100%', 'important');
-  }
+  // that have a fixed inline width (550px). On narrow screens (especially iOS
+  // Safari) this overflows the container. We continuously force width: 100%.
   function constrainAllTwitterEmbeds() {
-    document.querySelectorAll('.nl-embed-tweet twitter-widget, .nl-embed-tweet twitterwidget, .nl-embed-tweet iframe[src*="twitter.com"], .nl-embed-tweet iframe[src*="x.com"]').forEach(constrainTwitterEl);
+    document.querySelectorAll('twitter-widget, twitterwidget').forEach(el => {
+      el.style.setProperty('max-width', '100%', 'important');
+      el.style.setProperty('width', '100%', 'important');
+    });
   }
+  // Run on every DOM change, with retries for async Twitter rendering
   new MutationObserver(() => {
     constrainAllTwitterEmbeds();
-    // Twitter sets width asynchronously — retry after a short delay
-    setTimeout(constrainAllTwitterEmbeds, 300);
-    setTimeout(constrainAllTwitterEmbeds, 1000);
-  }).observe(document.body, { childList: true, subtree: true });
+    setTimeout(constrainAllTwitterEmbeds, 500);
+    setTimeout(constrainAllTwitterEmbeds, 2000);
+  }).observe(document.body, { childList: true, subtree: true, attributes: true });
+  // Also run periodically for the first 10 seconds to catch late renders
+  let twitterFixCount = 0;
+  const twitterFixInterval = setInterval(() => {
+    constrainAllTwitterEmbeds();
+    if (++twitterFixCount >= 10) clearInterval(twitterFixInterval);
+  }, 1000);
 
   // ─── Load more (pagination) ──────────────────────────────────────────────
   const loadMoreBtn = document.getElementById('nl-load-more');
