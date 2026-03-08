@@ -106,7 +106,8 @@ router.post('/logout', requireAuth, (req, res) => {
 // GET /auth/me
 router.get('/me', requireAuth, (req, res) => {
   const { id, email, name, role, avatar_url, locale } = req.user;
-  res.json({ id, email, name, role, avatar_url, locale });
+  const timezone = process.env.TIMEZONE || 'Europe/Rome';
+  res.json({ id, email, name, role, avatar_url, locale, timezone });
 });
 
 module.exports = router;

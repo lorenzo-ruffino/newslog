@@ -29,8 +29,9 @@ router.get('/:idOrSlug', (req, res) => {
   `).all(blog.id);
 
   const locale = settings.locale || process.env.DEFAULT_LOCALE || 'it';
+  const timezone = process.env.TIMEZONE || 'Europe/Rome';
 
-  res.send(renderWidgetHtml(blog, entries, settings, locale));
+  res.send(renderWidgetHtml(blog, entries, settings, locale, timezone));
 });
 
 // GET /embed/resize.js — iframe auto-resize script
@@ -50,7 +51,7 @@ router.get('/resize.js', (req, res) => {
 })();`);
 });
 
-function renderWidgetHtml(blog, entries, settings, locale) {
+function renderWidgetHtml(blog, entries, settings, locale, timezone) {
   const theme = settings.theme || {};
   const colors = theme.colors || {};
   const layout = theme.layout || {};
@@ -147,6 +148,7 @@ function renderWidgetHtml(blog, entries, settings, locale) {
 <script src="/embed/widget.js"
   data-blog="${blog.slug}"
   data-locale="${locale}"
+  data-timezone="${timezone}"
   data-labels='${JSON.stringify(labels)}'
   data-live="${isLive}"
 ></script>

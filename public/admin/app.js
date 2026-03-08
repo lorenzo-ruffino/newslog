@@ -17,6 +17,7 @@ const state = {
   feedSSE: null,
   onlineEditors: [],
   soundEnabled: localStorage.getItem('nl-sound') !== 'off',
+  timezone: 'Europe/Rome',
 };
 
 // ─── Translations ─────────────────────────────────────────────────────────────
@@ -67,6 +68,7 @@ async function init() {
   if (!user) return showLogin();
 
   state.user = user;
+  if (user.timezone) state.timezone = user.timezone;
   if (user.locale && user.locale !== state.locale) {
     state.locale = user.locale;
     await loadTranslations(state.locale);
@@ -267,7 +269,7 @@ function renderBlogsList() {
     item.className = `blog-item${state.activeBlog?.id === blog.id ? ' active' : ''}`;
     item.dataset.id = blog.id;
     const createdDate = blog.created_at
-      ? new Date(blog.created_at).toLocaleDateString(state.locale === 'en' ? 'en-US' : 'it-IT', { day: 'numeric', month: 'short', year: 'numeric' })
+      ? new Date(blog.created_at).toLocaleDateString(state.locale === 'en' ? 'en-US' : 'it-IT', { day: 'numeric', month: 'short', year: 'numeric', timeZone: state.timezone })
       : '';
     item.innerHTML = `
       <div class="blog-status-dot ${blog.status}"></div>
@@ -1861,7 +1863,7 @@ function escHtml(str) {
 function formatDate(dateStr) {
   const d = new Date(dateStr);
   if (isNaN(d)) return dateStr;
-  return d.toLocaleString(state.locale === 'en' ? 'en-US' : 'it-IT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleString(state.locale === 'en' ? 'en-US' : 'it-IT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: state.timezone });
 }
 
 function setAvatar(el, user) {

@@ -5,6 +5,7 @@
   const script = document.currentScript;
   const blogSlug = script?.dataset.blog || document.querySelector('[data-blog]')?.dataset.blog;
   const locale = script?.dataset.locale || 'it';
+  const timezone = script?.dataset.timezone || 'Europe/Rome';
   const isLive = script?.dataset.live === 'true';
   let labels = {};
   try { labels = JSON.parse(script?.dataset.labels || '{}'); } catch {}
@@ -308,7 +309,7 @@
     const d = new Date(dateStr);
     if (isNaN(d)) return '';
     return d.toLocaleString(locale === 'en' ? 'en-US' : 'it-IT', {
-      day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+      day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: timezone,
     });
   }
 
