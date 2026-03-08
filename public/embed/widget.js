@@ -290,8 +290,8 @@
   function ensurePinnedOrder(feed) {
     const pinned = Array.from(feed.querySelectorAll('.nl-entry-pinned-top'));
     if (!pinned.length) return;
-    // Use feed.prepend() instead of insertBefore(p, firstElementChild) because
-    // firstElementChild can be stale on iOS Safari immediately after a DOM mutation.
+    // Disable animation before moving — DOM detach/reattach re-triggers CSS animations
+    for (const p of pinned) p.style.animation = 'none';
     // Reverse order preserves mutual ordering when multiple pinned entries exist.
     for (let i = pinned.length - 1; i >= 0; i--) {
       feed.prepend(pinned[i]);
