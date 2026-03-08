@@ -349,7 +349,7 @@ function bindFeedSearch() {
 
 function createEntryElement(entry) {
   const el = document.createElement('div');
-  el.className = `feed-entry${entry.entry_type !== 'update' ? ' ' + entry.entry_type : ''}`;
+  el.className = `feed-entry${entry.entry_type !== 'update' ? ' ' + entry.entry_type : ''}${entry.is_pinned ? ' is-pinned' : ''}`;
   el.id = `entry-${entry.id}`;
   el.dataset.id = entry.id;
 
@@ -436,7 +436,7 @@ function refreshFeedCount() {
 // so that pinned entries always stay at the top.
 function getNewEntryInsertPoint(feed, newEntryIsPinned) {
   if (newEntryIsPinned) return feed.firstChild;
-  const pinnedEntries = feed.querySelectorAll('.feed-entry.pinned');
+  const pinnedEntries = feed.querySelectorAll('.feed-entry.is-pinned');
   if (pinnedEntries.length) return pinnedEntries[pinnedEntries.length - 1].nextSibling;
   return feed.firstChild;
 }
@@ -644,13 +644,18 @@ async function publishEntry() {
   let htmlContent = editor.innerHTML.trim();
   for (const embed of state.pendingEmbeds) {
     const escapedUrl = embed.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    // Remove anchor tags wrapping the URL (browser auto-linkifies pasted URLs)
+    // Remove anchor tags wrapping the URL
     htmlContent = htmlContent.replace(new RegExp(`<a[^>]*>\\s*${escapedUrl}\\s*<\\/a>`, 'g'), '');
-    // Remove plain-text URL that was resolved
+    // Remove span tags wrapping the URL (some mobile browsers)
+    htmlContent = htmlContent.replace(new RegExp(`<span[^>]*>\\s*${escapedUrl}\\s*<\\/span>`, 'g'), '');
+    // Remove plain-text URL
     htmlContent = htmlContent.replace(new RegExp(escapedUrl, 'g'), '').trim();
   }
-  // Clean up empty tags left after URL removal
-  htmlContent = htmlContent.replace(/<p>\s*<br\s*\/?>\s*<\/p>/g, '').replace(/<p>\s*<\/p>/g, '').replace(/<div>\s*<\/div>/g, '').trim();
+  // Clean up empty/whitespace-only tags and stray <br> left after URL removal
+  htmlContent = htmlContent
+    .replace(/<(p|div|span)[^>]*>\s*(<br\s*\/?>)?\s*<\/\1>/g, '')
+    .replace(/^(<br\s*\/?>)+|(<br\s*\/?>)+$/g, '')
+    .trim();
 
   let fullContent = htmlContent;
   for (const embed of state.pendingEmbeds) {
@@ -759,7 +764,6 @@ function connectPublicSSE(slug) {
   sse.onerror = () => {
     if (sseWasOpen) {
       sseWasOpen = false;
-      // Wait for EventSource to reconnect, then sync
       const syncOnReopen = () => {
         if (sse.readyState === EventSource.OPEN) {
           loadEntries();
@@ -770,7 +774,17 @@ function connectPublicSSE(slug) {
       setTimeout(syncOnReopen, 500);
     }
   };
+
 }
+
+// Mobile: reconnect SSE and refresh entries when page comes back to foreground
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || !state.activeBlog) return;
+  const slug = state.activeBlog.slug;
+  if (!state.feedSSE || state.feedSSE.readyState === EventSource.CLOSED) connectPublicSSE(slug);
+  if (!state.editorSSE || state.editorSSE.readyState === EventSource.CLOSED) connectEditorSSE(slug);
+  loadEntries();
+});
 
 function connectEditorSSE(slug) {
   if (state.editorSSE) state.editorSSE.close();
@@ -1836,14 +1850,18 @@ function insertAtCursor(textarea, text) {
 // ─── Sound ────────────────────────────────────────────────────────────────────
 let audioCtx = null;
 
-// Unlock AudioContext on first user gesture (required after page refresh)
+// Create and unlock AudioContext on first user gesture (required after page refresh)
 function unlockAudioCtx() {
+  if (!audioCtx && state.soundEnabled) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (_) {}
+  }
   if (audioCtx && audioCtx.state === 'suspended') {
     audioCtx.resume().catch(() => {});
   }
 }
 document.addEventListener('click', unlockAudioCtx, { passive: true });
 document.addEventListener('touchend', unlockAudioCtx, { passive: true });
+document.addEventListener('keydown', unlockAudioCtx, { passive: true });
 
 // Keep AudioContext alive — play silent buffer every 25s to prevent browser suspension
 setInterval(() => {

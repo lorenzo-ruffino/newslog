@@ -497,6 +497,12 @@ select.theme-select {
   max-height: 80vh; overflow-y: auto; color: var(--text);
   box-shadow: 0 20px 60px rgba(0,0,0,0.5);
 }
+/* Ensure inputs inside modals always use theme colors (iOS Safari fix) */
+.modal-box input, .modal-box textarea {
+  color: var(--text) !important;
+  -webkit-text-fill-color: var(--text) !important;
+  background-color: var(--bg-raised) !important;
+}
 .modal-title { font-size: 1.05rem; font-weight: 700; color: var(--text); margin-bottom: 16px; }
 .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
 .form-group { margin-bottom: 14px; }
@@ -622,5 +628,6 @@ select.theme-select {
   /* Toolbar layout on mobile: stack vertically */
   .compose-toolbar { flex-direction: column; align-items: stretch; gap: 0; }
   .toolbar-left { flex-wrap: wrap; }
-  .toolbar-right { justify-content: flex-end; padding-top: 8px; border-top: 1px solid var(--border); margin-top: 6px; }
+  .toolbar-right { justify-content: space-between; padding-top: 8px; border-top: 1px solid var(--border); margin-top: 6px; }
+  .btn-publish { flex: 1; }
 }
