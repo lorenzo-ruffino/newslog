@@ -165,13 +165,21 @@
   }
 
   // ─── DOM Manipulation ─────────────────────────────────────────────────────
-  // Returns the node before which a new entry should be inserted,
-  // so that pinned entries always stay at the top of the feed.
-  function getInsertPoint(feed, isPinned) {
-    if (isPinned) return feed.firstChild;
-    const pinned = feed.querySelectorAll('.nl-entry-pinned-top');
-    if (pinned.length) return pinned[pinned.length - 1].nextSibling;
-    return feed.firstChild;
+
+  // Ensures all pinned entries sit above all non-pinned entries in the feed.
+  // Called after every insert/update so ordering is always correct regardless
+  // of SSE event order or timing.
+  function ensurePinnedOrder(feed) {
+    const pinned = Array.from(feed.querySelectorAll('.nl-entry-pinned-top'));
+    if (!pinned.length) return;
+    // Move each pinned entry to the top (before firstElementChild),
+    // preserving their mutual order.
+    const firstEl = feed.firstElementChild;
+    for (const p of pinned) {
+      if (p !== firstEl) {
+        feed.insertBefore(p, firstEl);
+      }
+    }
   }
 
   function prependEntry(entry) {
@@ -183,7 +191,6 @@
     if (empty) empty.remove();
 
     const el = buildEntryEl(entry);
-    const insertPoint = getInsertPoint(feed, entry.is_pinned);
 
     if (hasScrolledUp) {
       // Show "new updates" bar
@@ -192,9 +199,11 @@
         newUpdatesBar.style.display = '';
         newUpdatesBar.querySelector('span').textContent = `${pendingNewEntries} ${labels.new_updates || 'New updates'}`;
       }
-      feed.insertBefore(el, insertPoint);
+      feed.insertBefore(el, feed.firstElementChild);
+      ensurePinnedOrder(feed);
     } else {
-      feed.insertBefore(el, insertPoint);
+      feed.insertBefore(el, feed.firstElementChild);
+      ensurePinnedOrder(feed);
       el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
@@ -216,14 +225,9 @@
     const el = document.getElementById(`nl-entry-${entry.id}`);
     if (!el) return;
     const feed = document.getElementById('nl-feed');
-    const wasPinned = el.classList.contains('nl-entry-pinned-top');
     const newEl = buildEntryEl(entry);
     el.replaceWith(newEl);
-    // Reposition if pin state changed
-    if (!!entry.is_pinned !== wasPinned && feed) {
-      const insertPoint = getInsertPoint(feed, entry.is_pinned);
-      feed.insertBefore(newEl, insertPoint);
-    }
+    if (feed) ensurePinnedOrder(feed);
   }
 
   function removeEntry(id) {
