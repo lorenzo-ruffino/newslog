@@ -347,6 +347,20 @@
     const feed = document.getElementById('nl-feed');
     const newEl = buildEntryEl(entry, true);
     el.replaceWith(newEl);
+    // If the entry was unpinned, move it back to its chronological position
+    if (feed && !entry.is_pinned) {
+      const entryTime = entry.created_at || '';
+      const siblings = Array.from(feed.querySelectorAll('.nl-entry'));
+      for (const sib of siblings) {
+        if (sib === newEl) continue;
+        if (sib.classList.contains('nl-entry-pinned-top')) continue;
+        const sibTime = sib.dataset.createdAt || '';
+        if (sibTime && entryTime && sibTime < entryTime) {
+          feed.insertBefore(newEl, sib);
+          break;
+        }
+      }
+    }
     if (feed) ensurePinnedOrder(feed);
     if (window.twttr?.widgets) window.twttr.widgets.load(newEl);
   }
@@ -380,6 +394,7 @@
     if (skipAnimation) el.style.animation = 'none';
     el.id = `nl-entry-${entry.id}`;
     el.dataset.id = entry.id;
+    if (entry.created_at) el.dataset.createdAt = entry.created_at;
     if (entry.updated_at) el.dataset.updatedAt = entry.updated_at;
 
     const authorName = entry.author?.name || 'Unknown';
@@ -442,6 +457,27 @@
     return str.toString()
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
+
+  // ─── Sandbox third-party iframes to prevent navigation hijacking on mobile ──
+  // Twitter/X widgets.js creates iframes that can take over the browser history.
+  // On mobile tab restore, the browser may navigate to platform.twitter.com instead
+  // of the original page. Sandboxing these iframes prevents top-navigation.
+  new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      for (const node of m.addedNodes) {
+        if (node.nodeType !== 1) continue;
+        const iframes = node.tagName === 'IFRAME' ? [node] : node.querySelectorAll?.('iframe') || [];
+        for (const iframe of iframes) {
+          const src = iframe.src || '';
+          if (src.includes('platform.twitter.com') || src.includes('platform.x.com')) {
+            if (!iframe.sandbox || !iframe.sandbox.length) {
+              iframe.sandbox = 'allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox';
+            }
+          }
+        }
+      }
+    }
+  }).observe(document.body, { childList: true, subtree: true });
 
   // ─── Load more (pagination) ──────────────────────────────────────────────
   const loadMoreBtn = document.getElementById('nl-load-more');

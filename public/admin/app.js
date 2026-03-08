@@ -1118,7 +1118,7 @@ function showMobileThemeModal() {
   }
   showModal({
     title: t('common.theme'),
-    body: `<div id="mobile-theme-panel" style="max-height:60vh;overflow-y:auto;"></div>`,
+    body: `<div id="mobile-theme-panel" style="max-height:60vh;overflow-y:auto;-webkit-overflow-scrolling:touch;"></div>`,
     actions: [{ label: t('common.close'), cls: 'btn-secondary', action: closeModal }],
   });
   renderThemePanel(document.getElementById('mobile-theme-panel'));
@@ -1419,7 +1419,7 @@ function showEmbedSnippet() {
   const baseUrl = location.origin;
   const embedId = state.activeBlog.numeric_id || state.activeBlog.slug;
   const frameId = `nl-frame-${embedId}`;
-  const snippet = `<iframe\n  id="${frameId}"\n  src="${baseUrl}/embed/${embedId}"\n  style="width:100%;border:none;display:block;overflow:hidden;"\n  scrolling="no"\n  loading="lazy"\n  allow="autoplay; notifications"\n></iframe>\n<script>\nwindow.addEventListener('message', function(e) {\n  if (e.data && e.data.type === 'newslog-resize') {\n    var iframe = document.getElementById('${frameId}');\n    if (iframe) iframe.style.height = e.data.height + 'px';\n  }\n});\n<\/script>`;
+  const snippet = `<iframe\n  id="${frameId}"\n  src="${baseUrl}/embed/${embedId}"\n  style="width:100%;border:none;display:block;overflow:hidden;"\n  scrolling="no"\n  loading="lazy"\n  allow="autoplay; notifications"\n  sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"\n></iframe>\n<script>\nwindow.addEventListener('message', function(e) {\n  if (e.data && e.data.type === 'newslog-resize') {\n    var iframe = document.getElementById('${frameId}');\n    if (iframe) iframe.style.height = e.data.height + 'px';\n  }\n});\n<\/script>`;
 
   showModal({
     title: t('blog.embed_snippet'),
