@@ -169,6 +169,15 @@
   }
 
   // ─── DOM Manipulation ─────────────────────────────────────────────────────
+  // Returns the node before which a new entry should be inserted,
+  // so that pinned entries always stay at the top of the feed.
+  function getInsertPoint(feed, isPinned) {
+    if (isPinned) return feed.firstChild;
+    const pinned = feed.querySelectorAll('.nl-entry-pinned-top');
+    if (pinned.length) return pinned[pinned.length - 1].nextSibling;
+    return feed.firstChild;
+  }
+
   function prependEntry(entry) {
     const feed = document.getElementById('nl-feed');
     if (!feed) return;
@@ -178,6 +187,7 @@
     if (empty) empty.remove();
 
     const el = buildEntryEl(entry);
+    const insertPoint = getInsertPoint(feed, entry.is_pinned);
 
     if (hasScrolledUp) {
       // Show "new updates" bar
@@ -186,9 +196,9 @@
         newUpdatesBar.style.display = '';
         newUpdatesBar.querySelector('span').textContent = `${pendingNewEntries} ${labels.new_updates || 'New updates'}`;
       }
-      feed.insertBefore(el, feed.firstChild);
+      feed.insertBefore(el, insertPoint);
     } else {
-      feed.insertBefore(el, feed.firstChild);
+      feed.insertBefore(el, insertPoint);
       el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 

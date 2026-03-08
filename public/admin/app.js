@@ -1197,9 +1197,9 @@ function bindTopbarEvents() {
     state.soundEnabled = !state.soundEnabled;
     localStorage.setItem('nl-sound', state.soundEnabled ? 'on' : 'off');
     applySoundUI();
-    // Unlock AudioContext on first interaction
     if (state.soundEnabled) playNewEntrySound('update');
   });
+
 
   document.querySelectorAll('.locale-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
