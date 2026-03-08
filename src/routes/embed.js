@@ -187,7 +187,7 @@ function renderEntry(entry, style, showAvatars, showTimestamps, labels, locale, 
 
   const dateStr = showTimestamps ? formatDate(entry.created_at, locale, timezone) : '';
 
-  return `<div class="nl-entry ${typeClass} ${pinnedClass}" id="nl-entry-${entry.id}" data-id="${entry.id}" data-author-pos="${authorPos}">
+  return `<div class="nl-entry ${typeClass} ${pinnedClass}" id="nl-entry-${entry.id}" data-id="${entry.id}" data-updated-at="${entry.updated_at || entry.created_at}" data-author-pos="${authorPos}">
     ${entry.is_pinned ? `<div class="nl-pinned-banner">${labels.pinned}</div>` : ''}
     <div class="nl-entry-header">
       ${showAvatars && entry.author_avatar ? `<img src="${escapeHtml(entry.author_avatar)}" class="nl-avatar" alt="${escapeHtml(entry.author_name)}" loading="lazy">` : ''}

@@ -344,6 +344,7 @@
     const newEl = buildEntryEl(entry, true);
     el.replaceWith(newEl);
     if (feed) ensurePinnedOrder(feed);
+    if (window.twttr?.widgets) window.twttr.widgets.load(newEl);
   }
 
   function removeEntry(id) {
