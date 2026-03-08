@@ -735,9 +735,20 @@ function connectPublicSSE(slug) {
   sse.addEventListener('update_entry', (e) => {
     const entry = JSON.parse(e.data);
     const idx = state.entries.findIndex(en => en.id === entry.id);
+    const wasPinned = idx !== -1 && state.entries[idx].is_pinned;
     if (idx !== -1) state.entries[idx] = entry;
     const el = document.getElementById(`entry-${entry.id}`);
-    if (el) el.replaceWith(createEntryElement(entry));
+    if (el) {
+      const newEl = createEntryElement(entry);
+      // If pin status changed, reposition the element in the feed
+      if (wasPinned !== entry.is_pinned) {
+        el.remove();
+        const feed = document.getElementById('feed');
+        if (feed) feed.insertBefore(newEl, getNewEntryInsertPoint(feed, entry.is_pinned));
+      } else {
+        el.replaceWith(newEl);
+      }
+    }
     updatePreviewIframe();
   });
 
@@ -778,11 +789,17 @@ function connectPublicSSE(slug) {
 }
 
 // Mobile: reconnect SSE and refresh entries when page comes back to foreground
+// Browsers suspend SSE in background tabs; readyState can be CONNECTING (stuck) or CLOSED
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible' || !state.activeBlog) return;
   const slug = state.activeBlog.slug;
-  if (!state.feedSSE || state.feedSSE.readyState === EventSource.CLOSED) connectPublicSSE(slug);
-  if (!state.editorSSE || state.editorSSE.readyState === EventSource.CLOSED) connectEditorSSE(slug);
+  if (!state.feedSSE || state.feedSSE.readyState !== EventSource.OPEN) {
+    connectPublicSSE(slug);
+  }
+  if (!state.editorSSE || state.editorSSE.readyState !== EventSource.OPEN) {
+    connectEditorSSE(slug);
+  }
+  // Always reload entries to fill any gap from background suspension
   loadEntries();
 });
 
@@ -1862,6 +1879,10 @@ function unlockAudioCtx() {
 document.addEventListener('click', unlockAudioCtx, { passive: true });
 document.addEventListener('touchend', unlockAudioCtx, { passive: true });
 document.addEventListener('keydown', unlockAudioCtx, { passive: true });
+// Also try to unlock when returning to the page (covers mobile tab switching)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') unlockAudioCtx();
+}, { passive: true });
 
 // Keep AudioContext alive — play silent buffer every 25s to prevent browser suspension
 setInterval(() => {
