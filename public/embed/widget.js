@@ -337,7 +337,7 @@
     }
 
     // Reload Twitter widgets for new entries
-    if (window.twttr?.widgets) window.twttr.widgets.load(el);
+    loadTwitterWidgets(el);
 
     // Breaking notification
     if (entry.entry_type === 'breaking' && notificationsEnabled && document.hidden) {
@@ -371,7 +371,7 @@
       }
     }
     if (feed) ensurePinnedOrder(feed);
-    if (window.twttr?.widgets) window.twttr.widgets.load(newEl);
+    loadTwitterWidgets(newEl);
   }
 
   function removeEntry(id) {
@@ -471,36 +471,17 @@
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  // ─── Scale Twitter/X embeds to fit container ─────────────────────────────
-  // Twitter widgets.js renders tweets at a fixed width (550px) inside Shadow DOM.
-  // On iOS Safari this overflows the container. We use transform:scale() to
-  // shrink the entire widget (Shadow DOM included) to fit its parent.
-  function scaleTwitterEmbeds() {
-    document.querySelectorAll('.nl-embed-tweet').forEach(container => {
-      // Find the rendered twitter widget element
-      const widget = container.querySelector('twitter-widget') || container.querySelector('twitterwidget');
-      if (!widget) return;
-      // Reset transform to measure natural width
-      widget.style.transform = '';
-      container.style.height = '';
-      const widgetWidth = widget.offsetWidth;
-      const containerWidth = container.parentElement.offsetWidth -
-        parseFloat(getComputedStyle(container.parentElement).paddingLeft || 0) -
-        parseFloat(getComputedStyle(container.parentElement).paddingRight || 0);
-      if (widgetWidth > containerWidth && containerWidth > 0) {
-        const scale = containerWidth / widgetWidth;
-        widget.style.transformOrigin = 'top left';
-        widget.style.transform = `scale(${scale})`;
-        container.style.height = (widget.offsetHeight * scale) + 'px';
-      }
+  // ─── Load Twitter widgets with correct width ─────────────────────────────
+  // Twitter renders iframe content at 550px by default. We set data-width on
+  // blockquotes before widgets.js processes them so the content fits the container.
+  function loadTwitterWidgets(el) {
+    if (!window.twttr?.widgets) return;
+    el.querySelectorAll('blockquote.twitter-tweet').forEach(bq => {
+      const w = bq.parentElement ? bq.parentElement.offsetWidth : 0;
+      if (w > 0) bq.setAttribute('data-width', Math.min(w, 550));
     });
+    window.twttr.widgets.load(el);
   }
-  new MutationObserver(() => {
-    setTimeout(scaleTwitterEmbeds, 500);
-    setTimeout(scaleTwitterEmbeds, 1500);
-    setTimeout(scaleTwitterEmbeds, 3000);
-  }).observe(document.body, { childList: true, subtree: true });
-  window.addEventListener('resize', scaleTwitterEmbeds);
 
   // ─── Load more (pagination) ──────────────────────────────────────────────
   const loadMoreBtn = document.getElementById('nl-load-more');
@@ -526,7 +507,7 @@
         if (document.getElementById(`nl-entry-${entry.id}`)) continue;
         const el = buildEntryEl(entry);
         feed.appendChild(el);
-        if (window.twttr?.widgets) window.twttr.widgets.load(el);
+        loadTwitterWidgets(el);
       }
 
       totalEntries = data.total || totalEntries;

@@ -209,6 +209,15 @@ function renderWidgetHtml(db, blog, entries, settings, locale, timezone, totalEn
   data-page-size="${pageSize}"
   data-total="${totalEntries}"
 ></script>
+<script>
+// Set data-width on Twitter blockquotes BEFORE widgets.js processes them.
+// Without this, Twitter renders the iframe content at 550px (its default),
+// which overflows on narrow screens (e.g. iPhone ~375px).
+document.querySelectorAll('blockquote.twitter-tweet').forEach(function(bq) {
+  var w = bq.parentElement ? bq.parentElement.offsetWidth : 0;
+  if (w > 0) bq.setAttribute('data-width', Math.min(w, 550));
+});
+</script>
 <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 </body>
 </html>`;
