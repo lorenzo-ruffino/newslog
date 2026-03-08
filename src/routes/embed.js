@@ -206,7 +206,7 @@ function formatDate(dateStr, locale, timezone) {
   const d = new Date(normalized);
   if (isNaN(d)) return dateStr;
   return d.toLocaleString(locale === 'en' ? 'en-US' : 'it-IT', {
-    day: 'numeric', month: 'long', year: 'numeric',
+    day: 'numeric', month: 'short',
     hour: '2-digit', minute: '2-digit',
     timeZone: timezone || 'Europe/Rome',
   });
