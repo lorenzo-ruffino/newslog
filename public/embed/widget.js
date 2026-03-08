@@ -128,6 +128,14 @@
   const POLL_INTERVAL = 5000;
   const SSE_MAX_FAILS = 2; // switch to polling after N failures
 
+  // iOS Safari (including all iOS browsers — they all use WebKit) has broken
+  // SSE support in iframes. Detect and go straight to polling.
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isInIframe = window.self !== window.top;
+  if (isIOS && isInIframe) {
+    usePolling = true;
+  }
+
   function resetHeartbeatTimer() {
     clearTimeout(heartbeatTimer);
     sseFailCount = 0; // SSE is working
