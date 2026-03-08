@@ -650,13 +650,25 @@ async function publishEntry() {
         a.replaceWith(document.createTextNode(''));
       }
     });
-    // Walk all text nodes and remove the URL string directly (avoids innerHTML &amp; encoding issues on mobile)
+    // Walk all text nodes and remove the URL string directly.
+    // On mobile iOS, the browser may insert newlines within the URL in the contenteditable,
+    // so we also try matching after collapsing whitespace.
     const walker = document.createTreeWalker(clone, NodeFilter.SHOW_TEXT);
     const textNodes = [];
     while (walker.nextNode()) textNodes.push(walker.currentNode);
     for (const node of textNodes) {
-      if (node.nodeValue && node.nodeValue.includes(embed.url)) {
+      if (!node.nodeValue) continue;
+      if (node.nodeValue.includes(embed.url)) {
         node.nodeValue = node.nodeValue.split(embed.url).join('').trim();
+      } else {
+        // Collapse all whitespace in the node value and check if the URL appears
+        const collapsed = node.nodeValue.replace(/\s+/g, '');
+        if (collapsed.includes(embed.url.replace(/\s+/g, ''))) {
+          // Build a regex that allows optional whitespace between each character of the URL
+          const escapedUrl = embed.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const looseUrl = escapedUrl.split('').join('\\s*');
+          node.nodeValue = node.nodeValue.replace(new RegExp(looseUrl), '').trim();
+        }
       }
     }
   }
