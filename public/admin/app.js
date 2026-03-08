@@ -640,19 +640,30 @@ async function publishEntry() {
   const rawText = editor.innerText.trim();
   if (!rawText) return;
 
-  // Strip embed URLs from editor DOM, then read innerHTML
+  // Strip embed URLs from editor DOM, then read innerHTML.
+  // Strategy: unwrap all inline spans first (mobile browsers like Android Chrome may
+  // split URLs across multiple text nodes via autocorrect/composition spans), then
+  // do a plain-text replacement on the resulting innerHTML.
   const clone = editor.cloneNode(true);
+
+  // Unwrap all <span> elements that don't carry meaningful attributes, replacing them
+  // with their text content so the URL lands in a single text node.
+  clone.querySelectorAll('span').forEach(span => {
+    const frag = document.createDocumentFragment();
+    while (span.firstChild) frag.appendChild(span.firstChild);
+    span.replaceWith(frag);
+  });
+
   for (const embed of state.pendingEmbeds) {
-    // Remove anchor tags whose href matches the embed URL (handles &amp; encoding automatically)
+    // 1. Remove anchor tags whose href matches the embed URL
     clone.querySelectorAll('a').forEach(a => {
       const href = a.getAttribute('href') || '';
       if (href === embed.url || href === embed.url.replace(/&/g, '&amp;')) {
         a.replaceWith(document.createTextNode(''));
       }
     });
-    // Walk all text nodes and remove the URL string directly.
-    // On mobile iOS, the browser may insert newlines within the URL in the contenteditable,
-    // so we also try matching after collapsing whitespace.
+
+    // 2. Walk text nodes and remove the URL (handles both plain & with possible whitespace)
     const walker = document.createTreeWalker(clone, NodeFilter.SHOW_TEXT);
     const textNodes = [];
     while (walker.nextNode()) textNodes.push(walker.currentNode);
@@ -660,17 +671,12 @@ async function publishEntry() {
       if (!node.nodeValue) continue;
       if (node.nodeValue.includes(embed.url)) {
         node.nodeValue = node.nodeValue.split(embed.url).join('').trim();
-      } else {
-        // Collapse all whitespace in the node value and check if the URL appears
-        const collapsed = node.nodeValue.replace(/\s+/g, '');
-        if (collapsed.includes(embed.url.replace(/\s+/g, ''))) {
-          // Build a regex that allows optional whitespace between each character of the URL
-          const escapedUrl = embed.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const looseUrl = escapedUrl.split('').join('\\s*');
-          node.nodeValue = node.nodeValue.replace(new RegExp(looseUrl), '').trim();
-        }
       }
     }
+
+    // 3. Last resort: innerHTML regex matching & and &amp; variants
+    const escapedUrl = embed.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/&amp;|&/g, '(?:&amp;|&)');
+    clone.innerHTML = clone.innerHTML.replace(new RegExp(escapedUrl, 'g'), '').trim();
   }
   let htmlContent = clone.innerHTML.trim();
   // Clean up empty/whitespace-only tags and stray <br> left after URL removal
