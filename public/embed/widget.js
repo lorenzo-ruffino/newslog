@@ -115,27 +115,64 @@
     }
   }
 
-  // ─── SSE Connection ───────────────────────────────────────────────────────
+  // ─── SSE Connection with polling fallback for iOS ────────────────────────
+  let heartbeatTimer = null;
+  let sseFailCount = 0;
+  let usePolling = false;
+  let pollTimer = null;
+  const HEARTBEAT_TIMEOUT = 45000; // server sends every 30s, allow 45s
+  const POLL_INTERVAL = 5000;
+  const SSE_MAX_FAILS = 2; // switch to polling after N failures
+
+  function resetHeartbeatTimer() {
+    clearTimeout(heartbeatTimer);
+    sseFailCount = 0; // SSE is working
+    heartbeatTimer = setTimeout(() => {
+      // No data received — connection is likely dead (common on iOS)
+      if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+      }
+      sseFailCount++;
+      if (sseFailCount >= SSE_MAX_FAILS) {
+        // SSE is unreliable on this device, switch to polling
+        usePolling = true;
+        startPolling();
+      } else {
+        reconnectDelay = 1000;
+        connect();
+      }
+    }, HEARTBEAT_TIMEOUT);
+  }
+
   function connect() {
     if (!blogSlug) return;
+    if (usePolling) { startPolling(); return; }
+    if (eventSource) {
+      eventSource.close();
+      eventSource = null;
+    }
 
+    // Use lastEntryId as query param so server can send missed entries
     const url = lastEntryId
-      ? `/api/blogs/${blogSlug}/stream`
+      ? `/api/blogs/${blogSlug}/stream?lastEventId=${encodeURIComponent(lastEntryId)}`
       : `/api/blogs/${blogSlug}/stream`;
 
     eventSource = new EventSource(url);
-    if (lastEntryId) {
-      // Can't set headers in EventSource, handled server-side by polling
-    }
 
     eventSource.onopen = () => {
       reconnectDelay = 1000;
+      resetHeartbeatTimer();
     };
 
+    eventSource.addEventListener('heartbeat', () => {
+      resetHeartbeatTimer();
+    });
+
     eventSource.addEventListener('new_entry', (e) => {
+      resetHeartbeatTimer();
       const entry = JSON.parse(e.data);
       lastEntryId = entry.id;
-      // Skip if already rendered (catch-up replay after reconnect)
       if (document.getElementById(`nl-entry-${entry.id}`)) return;
       prependEntry(entry);
       notifyResize();
@@ -143,27 +180,97 @@
     });
 
     eventSource.addEventListener('update_entry', (e) => {
+      resetHeartbeatTimer();
       const entry = JSON.parse(e.data);
       updateEntry(entry);
     });
 
     eventSource.addEventListener('delete_entry', (e) => {
+      resetHeartbeatTimer();
       const { id } = JSON.parse(e.data);
       removeEntry(id);
     });
 
-
     eventSource.addEventListener('blog_status', (e) => {
+      resetHeartbeatTimer();
       const { status } = JSON.parse(e.data);
       updateBadge(status);
     });
 
     eventSource.onerror = () => {
-      eventSource.close();
-      setTimeout(connect, Math.min(reconnectDelay, 30000));
-      reconnectDelay = Math.min(reconnectDelay * 2, 30000);
+      clearTimeout(heartbeatTimer);
+      if (eventSource) eventSource.close();
+      eventSource = null;
+      sseFailCount++;
+      if (sseFailCount >= SSE_MAX_FAILS) {
+        usePolling = true;
+        startPolling();
+      } else {
+        setTimeout(connect, Math.min(reconnectDelay, 30000));
+        reconnectDelay = Math.min(reconnectDelay * 2, 30000);
+      }
     };
   }
+
+  // ─── Polling fallback (for iOS Safari where SSE is unreliable) ──────────
+  function startPolling() {
+    if (pollTimer) return;
+    poll(); // immediate first poll
+    pollTimer = setInterval(poll, POLL_INTERVAL);
+  }
+
+  async function poll() {
+    if (!blogSlug) return;
+    try {
+      const resp = await fetch(`/api/blogs/${blogSlug}/entries?limit=20`);
+      if (!resp.ok) return;
+      const data = await resp.json();
+      const entries = data.entries || [];
+      // Process in chronological order (oldest first) so newest ends up on top
+      const sorted = entries.slice().reverse();
+      for (const entry of sorted) {
+        if (document.getElementById(`nl-entry-${entry.id}`)) continue;
+        // Only show entries newer than what we already have
+        if (lastEntryId) {
+          const existing = document.getElementById(`nl-entry-${lastEntryId}`);
+          if (!existing) { lastEntryId = entry.id; prependEntry(entry); notifyResize(); playBeep(); continue; }
+        }
+        lastEntryId = entry.id;
+        prependEntry(entry);
+        notifyResize();
+        playBeep();
+      }
+      // Update existing entries content (handles edits)
+      for (const entry of entries) {
+        const el = document.getElementById(`nl-entry-${entry.id}`);
+        if (el) {
+          const contentEl = el.querySelector('.nl-entry-content');
+          if (contentEl && contentEl.innerHTML !== entry.content) {
+            updateEntry(entry);
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  // ─── Visibility & pageshow handlers ─────────────────────────────────────
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && isLive) {
+      if (usePolling) {
+        poll(); // immediate poll on visibility restore
+      } else {
+        reconnectDelay = 1000;
+        connect();
+      }
+    }
+  });
+
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted && isLive) {
+      reconnectDelay = 1000;
+      connect();
+    }
+  });
 
   // ─── DOM Manipulation ─────────────────────────────────────────────────────
 

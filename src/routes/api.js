@@ -306,7 +306,7 @@ router.get('/blogs/:slug/stream', (req, res) => {
   });
   res.flushHeaders();
 
-  const lastEventId = req.headers['last-event-id'] || null;
+  const lastEventId = req.headers['last-event-id'] || req.query.lastEventId || null;
   addPublicClient(blog.slug, res, lastEventId);
 
   // Send initial data if Last-Event-ID provided (catch-up)
