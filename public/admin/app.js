@@ -640,18 +640,22 @@ async function publishEntry() {
   const rawText = editor.innerText.trim();
   if (!rawText) return;
 
-  // Get HTML content, strip embed URLs, then append embed HTML
-  let htmlContent = editor.innerHTML.trim();
+  // Strip embed URLs from editor DOM, then read innerHTML
+  const clone = editor.cloneNode(true);
   for (const embed of state.pendingEmbeds) {
-    // Build a regex that matches the URL in both plain text and HTML-encoded form (& vs &amp;)
+    // Remove anchor tags whose href matches the embed URL (handles &amp; encoding automatically)
+    clone.querySelectorAll('a').forEach(a => {
+      const href = a.getAttribute('href') || '';
+      if (href === embed.url || href === embed.url.replace(/&/g, '&amp;')) {
+        a.replaceWith(document.createTextNode(''));
+      }
+    });
+    // Remove any remaining plain-text occurrences via regex on innerHTML
+    // Use a regex that handles both & and &amp; in query strings
     const escapedUrl = embed.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/&amp;|&/g, '(?:&amp;|&)');
-    // Remove anchor tags wrapping the URL
-    htmlContent = htmlContent.replace(new RegExp(`<a[^>]*>\\s*${escapedUrl}\\s*<\\/a>`, 'g'), '');
-    // Remove span tags wrapping the URL (some mobile browsers)
-    htmlContent = htmlContent.replace(new RegExp(`<span[^>]*>\\s*${escapedUrl}\\s*<\\/span>`, 'g'), '');
-    // Remove plain-text URL
-    htmlContent = htmlContent.replace(new RegExp(escapedUrl, 'g'), '').trim();
+    clone.innerHTML = clone.innerHTML.replace(new RegExp(escapedUrl, 'g'), '').trim();
   }
+  let htmlContent = clone.innerHTML.trim();
   // Clean up empty/whitespace-only tags and stray <br> left after URL removal
   htmlContent = htmlContent
     .replace(/<(p|div|span)[^>]*>\s*(<br\s*\/?>)?\s*<\/\1>/g, '')

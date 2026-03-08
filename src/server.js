@@ -115,8 +115,14 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', uptime: process.uptime() });
 });
 
-// Admin SPA — serve for all non-API routes
-app.use('/', express.static(path.join(__dirname, '..', 'public', 'admin')));
+// Admin SPA — serve for all non-API routes (no-cache for JS/CSS to ensure updates propagate)
+app.use('/', express.static(path.join(__dirname, '..', 'public', 'admin'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.js') || filePath.endsWith('.css')) {
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+  }
+}));
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api') || req.path.startsWith('/auth') || req.path.startsWith('/embed') || req.path.startsWith('/uploads')) {
     return res.status(404).json({ error: 'Not found' });
