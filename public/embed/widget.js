@@ -471,20 +471,36 @@
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  // ─── Constrain Twitter/X embeds ──────────────────────────────────────────
-  // Twitter widgets.js renders at 550px fixed width. On iOS Safari, iframes
-  // expand to fit their content, so the embed page body grows beyond the
-  // viewport. The CSS overflow-x:hidden + max-width:100vw on html/body
-  // prevents this. Here we also force the widget element width as a fallback.
-  function constrainTwitterWidgets() {
-    document.querySelectorAll('twitter-widget, twitterwidget').forEach(el => {
-      el.style.setProperty('max-width', '100%', 'important');
+  // ─── Scale Twitter/X embeds to fit container ─────────────────────────────
+  // Twitter widgets.js renders tweets at a fixed width (550px) inside Shadow DOM.
+  // On iOS Safari this overflows the container. We use transform:scale() to
+  // shrink the entire widget (Shadow DOM included) to fit its parent.
+  function scaleTwitterEmbeds() {
+    document.querySelectorAll('.nl-embed-tweet').forEach(container => {
+      // Find the rendered twitter widget element
+      const widget = container.querySelector('twitter-widget') || container.querySelector('twitterwidget');
+      if (!widget) return;
+      // Reset transform to measure natural width
+      widget.style.transform = '';
+      container.style.height = '';
+      const widgetWidth = widget.offsetWidth;
+      const containerWidth = container.parentElement.offsetWidth -
+        parseFloat(getComputedStyle(container.parentElement).paddingLeft || 0) -
+        parseFloat(getComputedStyle(container.parentElement).paddingRight || 0);
+      if (widgetWidth > containerWidth && containerWidth > 0) {
+        const scale = containerWidth / widgetWidth;
+        widget.style.transformOrigin = 'top left';
+        widget.style.transform = `scale(${scale})`;
+        container.style.height = (widget.offsetHeight * scale) + 'px';
+      }
     });
   }
   new MutationObserver(() => {
-    constrainTwitterWidgets();
-    setTimeout(constrainTwitterWidgets, 1000);
+    setTimeout(scaleTwitterEmbeds, 500);
+    setTimeout(scaleTwitterEmbeds, 1500);
+    setTimeout(scaleTwitterEmbeds, 3000);
   }).observe(document.body, { childList: true, subtree: true });
+  window.addEventListener('resize', scaleTwitterEmbeds);
 
   // ─── Load more (pagination) ──────────────────────────────────────────────
   const loadMoreBtn = document.getElementById('nl-load-more');
