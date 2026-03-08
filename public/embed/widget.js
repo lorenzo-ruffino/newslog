@@ -32,38 +32,53 @@
   window.addEventListener('load', notifyResize);
 
   // ─── Scroll detection ─────────────────────────────────────────────────────
-  // The widget runs inside an auto-resized iframe, so the iframe itself never
-  // scrolls — scrolling happens in the parent page. Use IntersectionObserver
-  // on a sentinel element at the top of the feed to detect if the user has
-  // scrolled past it.
+  // The widget runs inside an auto-resized iframe, so the iframe viewport is
+  // the full content height — IntersectionObserver won't work. Instead, check
+  // the iframe's position in the parent page via frameElement (same-origin).
   const feed = document.getElementById('nl-feed');
   const newUpdatesBar = document.getElementById('nl-new-updates-bar');
 
-  if (feed) {
-    const sentinel = document.createElement('div');
-    sentinel.id = 'nl-scroll-sentinel';
-    sentinel.style.height = '1px';
-    feed.parentNode.insertBefore(sentinel, feed);
-
-    if ('IntersectionObserver' in window) {
-      const scrollObserver = new IntersectionObserver((entries) => {
-        // sentinel is not visible → user has scrolled down past the top
-        hasScrolledUp = !entries[0].isIntersecting;
-        if (!hasScrolledUp && newUpdatesBar) {
-          newUpdatesBar.style.display = 'none';
-          pendingNewEntries = 0;
-        }
-      }, { threshold: 0 });
-      scrollObserver.observe(sentinel);
+  function checkScrollPosition() {
+    try {
+      // Same-origin: we can access frameElement in the parent
+      const frame = window.frameElement;
+      if (frame) {
+        const rect = frame.getBoundingClientRect();
+        // If the top of the iframe is more than 200px above the viewport, user has scrolled down
+        hasScrolledUp = rect.top < -200;
+      }
+    } catch (_) {
+      // Cross-origin: fall back to never showing the bar (safe default)
+    }
+    if (!hasScrolledUp && newUpdatesBar) {
+      newUpdatesBar.style.display = 'none';
+      pendingNewEntries = 0;
     }
   }
 
+  // Check on parent scroll events (throttled via rAF)
+  try {
+    let scrollTicking = false;
+    window.parent.addEventListener('scroll', () => {
+      if (!scrollTicking) {
+        scrollTicking = true;
+        requestAnimationFrame(() => {
+          checkScrollPosition();
+          scrollTicking = false;
+        });
+      }
+    }, { passive: true });
+  } catch (_) {
+    // Cross-origin — can't listen to parent scroll
+  }
+
   window.nlScrollToTop = function () {
-    // Scroll the parent page to bring the iframe/sentinel into view
-    const sentinel = document.getElementById('nl-scroll-sentinel');
-    if (sentinel) {
-      sentinel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else {
+    try {
+      const frame = window.frameElement;
+      if (frame) {
+        frame.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    } catch (_) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     if (newUpdatesBar) newUpdatesBar.style.display = 'none';
