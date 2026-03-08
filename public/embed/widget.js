@@ -458,23 +458,30 @@
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  // ─── Sandbox third-party iframes to prevent navigation hijacking on mobile ──
-  // Twitter/X widgets.js creates iframes that can take over the browser history.
-  // On mobile tab restore, the browser may navigate to platform.twitter.com instead
-  // of the original page. Sandboxing these iframes prevents top-navigation.
+  // ─── Constrain and sandbox third-party Twitter/X iframes ──────────────────
+  // Twitter widgets.js creates iframes with fixed inline widths (550px) that
+  // overflow on mobile (especially iOS Safari). Also sandbox them to prevent
+  // navigation hijacking on mobile tab restore.
+  function constrainTwitterEmbeds(root) {
+    const els = root.querySelectorAll ? root.querySelectorAll('twitter-widget, twitterwidget, .twitter-tweet-rendered, iframe') : [];
+    for (const el of els) {
+      const src = el.src || '';
+      const isTwitter = el.tagName?.toLowerCase().includes('twitter') || src.includes('platform.twitter.com') || src.includes('platform.x.com');
+      if (!isTwitter) continue;
+      el.style.maxWidth = '100%';
+      el.style.width = '100%';
+      if (el.tagName === 'IFRAME') {
+        if (!el.sandbox || !el.sandbox.length) {
+          el.sandbox = 'allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox';
+        }
+      }
+    }
+  }
   new MutationObserver((mutations) => {
     for (const m of mutations) {
       for (const node of m.addedNodes) {
         if (node.nodeType !== 1) continue;
-        const iframes = node.tagName === 'IFRAME' ? [node] : node.querySelectorAll?.('iframe') || [];
-        for (const iframe of iframes) {
-          const src = iframe.src || '';
-          if (src.includes('platform.twitter.com') || src.includes('platform.x.com')) {
-            if (!iframe.sandbox || !iframe.sandbox.length) {
-              iframe.sandbox = 'allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox';
-            }
-          }
-        }
+        constrainTwitterEmbeds(node.parentElement || document.body);
       }
     }
   }).observe(document.body, { childList: true, subtree: true });
