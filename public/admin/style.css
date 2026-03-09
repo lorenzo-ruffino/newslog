@@ -357,6 +357,7 @@ img { max-width: 100%; }
 .feed-entry.breaking { border-left-color: var(--breaking); background: var(--breaking-bg); border-color: rgba(220,38,38,0.2); }
 .feed-entry.pinned { border-left-color: var(--pinned); }
 .feed-entry.summary { border-left-color: var(--summary); }
+.feed-entry.is-pinned { border-left-color: var(--pinned); }
 .entry-pinned-banner {
   background: var(--pinned); color: #fff;
   font-size: 0.6rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
