@@ -458,7 +458,7 @@
     const authorAvatar = entry.author?.avatar_url;
     const typeBadge = entry.entry_type === 'breaking'
       ? `<span class="nl-type-badge nl-type-breaking">${labels.breaking || 'BREAKING'}</span>`
-      : entry.entry_type === 'pinned' || entry.is_pinned
+      : entry.entry_type === 'pinned'
       ? `<span class="nl-type-badge nl-type-pinned">${labels.pinned || 'PINNED'}</span>`
       : entry.entry_type === 'summary'
       ? `<span class="nl-type-badge nl-type-summary">${labels.summary || 'SUMMARY'}</span>`
@@ -470,7 +470,7 @@
       : `<div class="nl-avatar nl-avatar-placeholder">${(authorName[0] || 'U').toUpperCase()}</div>`;
 
     el.innerHTML = `
-      ${entry.is_pinned ? `<div class="nl-pinned-banner">${labels.pinned || 'IN EVIDENZA'}</div>` : ''}
+      ${entry.entry_type === 'pinned' ? `<div class="nl-pinned-banner">${labels.pinned || 'IN EVIDENZA'}</div>` : ''}
       <div class="nl-entry-header">
         ${avatarHtml}
         <span class="nl-author">${esc(authorName)}</span>
