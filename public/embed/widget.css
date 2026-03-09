@@ -72,8 +72,8 @@ body { font-family: var(--nl-font, -apple-system, BlinkMacSystemFont, 'Segoe UI'
 
 /* Entry types */
 .nl-entry-breaking { border-left-color: var(--nl-breaking, #DC2626) !important; }
-.nl-entry-pinned-top { border-left-color: var(--nl-pinned, #F59E0B) !important; }
 .nl-entry-summary { border-left-color: #0D9488 !important; }
+.nl-entry-pinned-top { border-left-color: var(--nl-pinned, #F59E0B) !important; }
 
 /* Pinned banner */
 .nl-pinned-banner {

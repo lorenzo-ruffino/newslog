@@ -470,7 +470,7 @@
       : `<div class="nl-avatar nl-avatar-placeholder">${(authorName[0] || 'U').toUpperCase()}</div>`;
 
     el.innerHTML = `
-      ${entry.entry_type === 'pinned' ? `<div class="nl-pinned-banner">${labels.pinned || 'IN EVIDENZA'}</div>` : ''}
+      ${entry.is_pinned ? `<div class="nl-pinned-banner">${labels.pinned || 'IN EVIDENZA'}</div>` : ''}
       <div class="nl-entry-header">
         ${avatarHtml}
         <span class="nl-author">${esc(authorName)}</span>

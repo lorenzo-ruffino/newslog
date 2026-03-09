@@ -229,7 +229,7 @@ function renderEntry(entry, style, showAvatars, showTimestamps, labels, locale, 
   const dateStr = showTimestamps ? formatDate(entry.created_at, locale, timezone) : '';
 
   return `<div class="nl-entry ${typeClass} ${pinnedClass}" id="nl-entry-${entry.id}" data-id="${entry.id}" data-created-at="${entry.created_at}" data-updated-at="${entry.updated_at || entry.created_at}" data-author-id="${entry.author_id}" data-author-pos="${authorPos}">
-    ${entry.entry_type === 'pinned' ? `<div class="nl-pinned-banner">${labels.pinned}</div>` : ''}
+    ${entry.is_pinned ? `<div class="nl-pinned-banner">${labels.pinned}</div>` : ''}
     <div class="nl-entry-header">
       ${showAvatars && entry.author_avatar ? `<img src="${escapeHtml(entry.author_avatar)}" class="nl-avatar" alt="${escapeHtml(entry.author_name)}" loading="lazy">` : ''}
       ${showAvatars && !entry.author_avatar ? `<div class="nl-avatar nl-avatar-placeholder">${(entry.author_name || 'U')[0].toUpperCase()}</div>` : ''}
