@@ -209,7 +209,6 @@ function renderWidgetHtml(db, blog, entries, settings, locale, timezone, totalEn
   data-page-size="${pageSize}"
   data-total="${totalEntries}"
 ></script>
-<script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 </body>
 </html>`;
 }

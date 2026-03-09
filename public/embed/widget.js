@@ -1,15 +1,21 @@
 /* NewsLog Widget JS — loaded inside the embed iframe */
 
-// Set data-width on Twitter blockquotes BEFORE widgets.js processes them.
-// Twitter renders iframe content at the width specified in data-width (default 550px).
-// This must run before widgets.js loads (async), which this script guarantees since
-// it is loaded synchronously and appears before widgets.js in the HTML.
-document.querySelectorAll('blockquote.twitter-tweet').forEach(function(bq) {
-  var container = bq.closest('.nl-embed-tweet') || bq.closest('.nl-entry-content') || bq.parentElement;
-  var w = container ? container.offsetWidth : 0;
-  if (!w) w = document.querySelector('.nl-container')?.offsetWidth || window.innerWidth || 0;
-  if (w > 0) bq.setAttribute('data-width', String(Math.floor(Math.min(w, 550))));
-});
+// Set data-width on Twitter blockquotes BEFORE widgets.js processes them, then
+// load widgets.js dynamically. This guarantees execution order: we set data-width
+// first (sync), then widgets.js downloads and runs, reading data-width from each
+// blockquote to render the iframe at the correct width (fixes iOS Safari clipping).
+// window.innerWidth is used because it always reflects the iframe viewport width
+// reliably, even when DOM elements haven't been laid out yet (offsetWidth = 0).
+(function () {
+  var w = Math.min(window.innerWidth || 550, 550);
+  document.querySelectorAll('blockquote.twitter-tweet').forEach(function(bq) {
+    bq.setAttribute('data-width', String(Math.floor(w)));
+  });
+  var s = document.createElement('script');
+  s.src = 'https://platform.twitter.com/widgets.js';
+  s.charset = 'utf-8';
+  document.head.appendChild(s);
+}());
 
 (function () {
   'use strict';
