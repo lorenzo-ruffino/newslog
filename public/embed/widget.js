@@ -1,20 +1,27 @@
 /* NewsLog Widget JS — loaded inside the embed iframe */
 
-// Set data-width on Twitter blockquotes BEFORE widgets.js processes them, then
-// load widgets.js dynamically. This guarantees execution order: we set data-width
-// first (sync), then widgets.js downloads and runs, reading data-width from each
-// blockquote to render the iframe at the correct width (fixes iOS Safari clipping).
-// window.innerWidth is used because it always reflects the iframe viewport width
-// reliably, even when DOM elements haven't been laid out yet (offsetWidth = 0).
+// Load widgets.js after DOMContentLoaded so that offsetWidth is accurate.
+// In conversation mode, tweet bubbles are 80% of the container — measuring at
+// parse time returns 0 (no layout yet). Waiting for DOMContentLoaded gives us
+// the real rendered width of each blockquote's parent, which fixes iOS clipping.
 (function () {
-  var w = Math.min(window.innerWidth || 550, 550);
-  document.querySelectorAll('blockquote.twitter-tweet').forEach(function(bq) {
-    bq.setAttribute('data-width', String(Math.floor(w)));
-  });
-  var s = document.createElement('script');
-  s.src = 'https://platform.twitter.com/widgets.js';
-  s.charset = 'utf-8';
-  document.head.appendChild(s);
+  function loadTwitterWidgetsJs() {
+    document.querySelectorAll('blockquote.twitter-tweet').forEach(function(bq) {
+      var container = bq.closest('.nl-embed-tweet') || bq.parentElement;
+      var w = container ? container.offsetWidth : 0;
+      if (!w) w = Math.min(window.innerWidth || 550, 550);
+      bq.setAttribute('data-width', String(Math.floor(Math.min(w, 550))));
+    });
+    var s = document.createElement('script');
+    s.src = 'https://platform.twitter.com/widgets.js';
+    s.charset = 'utf-8';
+    document.head.appendChild(s);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadTwitterWidgetsJs);
+  } else {
+    loadTwitterWidgetsJs();
+  }
 }());
 
 (function () {
