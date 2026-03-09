@@ -1,26 +1,50 @@
 /* NewsLog Widget JS — loaded inside the embed iframe */
 
-// Load widgets.js after DOMContentLoaded so that offsetWidth is accurate.
-// In conversation mode, tweet bubbles are 80% of the container — measuring at
-// parse time returns 0 (no layout yet). Waiting for DOMContentLoaded gives us
-// the real rendered width of each blockquote's parent, which fixes iOS clipping.
+// Twitter embed width fix for iOS Safari.
+// data-width on blockquotes is unreliable — widgets.js may ignore it.
+// Instead: replace blockquotes with placeholder divs (preventing auto-processing),
+// then use twttr.widgets.createTweet() with explicit width measured at DOMContentLoaded.
 (function () {
-  function loadTwitterWidgetsJs() {
+  // Initialise twttr queue so we can push a ready-callback before widgets.js loads.
+  window.twttr = window.twttr || { _e: [] };
+
+  function initTwitter() {
+    var tweets = [];
     document.querySelectorAll('blockquote.twitter-tweet').forEach(function(bq) {
+      // Extract tweet ID from the last anchor in the blockquote
+      var links = bq.querySelectorAll('a[href]');
+      var lastLink = links[links.length - 1];
+      if (!lastLink) return;
+      var m = lastLink.href.match(/status\/(\d+)/);
+      if (!m) return;
       var container = bq.closest('.nl-embed-tweet') || bq.parentElement;
-      var w = container ? container.offsetWidth : 0;
-      if (!w) w = Math.min(window.innerWidth || 550, 550);
-      bq.setAttribute('data-width', String(Math.floor(Math.min(w, 550))));
+      var w = (container ? container.offsetWidth : 0) || Math.min(window.innerWidth || 550, 550);
+      // Replace blockquote with a plain div so widgets.js won't auto-process it
+      var placeholder = document.createElement('div');
+      bq.parentNode.replaceChild(placeholder, bq);
+      tweets.push({ id: m[1], el: placeholder, width: Math.floor(Math.min(w, 550)) });
     });
+
+    if (!tweets.length) return;
+
+    // Queue callback: runs as soon as widgets.js is ready
+    window.twttr._e.push(function(twttr) {
+      tweets.forEach(function(t) {
+        twttr.widgets.createTweet(t.id, t.el, { width: t.width });
+      });
+    });
+
+    // Load widgets.js (will flush _e queue on load)
     var s = document.createElement('script');
     s.src = 'https://platform.twitter.com/widgets.js';
     s.charset = 'utf-8';
     document.head.appendChild(s);
   }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', loadTwitterWidgetsJs);
+    document.addEventListener('DOMContentLoaded', initTwitter);
   } else {
-    loadTwitterWidgetsJs();
+    initTwitter();
   }
 }());
 
@@ -497,15 +521,21 @@
   }
 
   // ─── Load Twitter widgets with correct width ─────────────────────────────
-  // Twitter renders iframe content at 550px by default. We set data-width on
-  // blockquotes before widgets.js processes them so the content fits the container.
+  // Uses createTweet() with explicit width so iOS Safari doesn't clip tweets.
   function loadTwitterWidgets(el) {
-    if (!window.twttr?.widgets) return;
+    if (!window.twttr?.widgets?.createTweet) return;
     el.querySelectorAll('blockquote.twitter-tweet').forEach(bq => {
-      const w = bq.parentElement ? bq.parentElement.offsetWidth : 0;
-      if (w > 0) bq.setAttribute('data-width', Math.min(w, 550));
+      const links = bq.querySelectorAll('a[href]');
+      const lastLink = links[links.length - 1];
+      if (!lastLink) return;
+      const m = lastLink.href.match(/status\/(\d+)/);
+      if (!m) return;
+      const container = bq.closest('.nl-embed-tweet') || bq.parentElement;
+      const w = Math.floor(Math.min(container ? container.offsetWidth || window.innerWidth : window.innerWidth, 550));
+      const placeholder = document.createElement('div');
+      bq.parentNode.replaceChild(placeholder, bq);
+      window.twttr.widgets.createTweet(m[1], placeholder, { width: w });
     });
-    window.twttr.widgets.load(el);
   }
 
   // ─── Load more (pagination) ──────────────────────────────────────────────
