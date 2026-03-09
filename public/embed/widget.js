@@ -1,17 +1,13 @@
 /* NewsLog Widget JS — loaded inside the embed iframe */
 
 // Twitter embed width fix for iOS Safari.
-// data-width on blockquotes is unreliable — widgets.js may ignore it.
-// Instead: replace blockquotes with placeholder divs (preventing auto-processing),
-// then use twttr.widgets.createTweet() with explicit width measured at DOMContentLoaded.
+// Replace blockquotes with placeholder divs before widgets.js loads (prevents
+// auto-processing at 550px), then call twttr.widgets.createTweet() with the
+// real container width via s.onload — avoiding the _e queue reset race condition.
 (function () {
-  // Initialise twttr queue so we can push a ready-callback before widgets.js loads.
-  window.twttr = window.twttr || { _e: [] };
-
   function initTwitter() {
     var tweets = [];
     document.querySelectorAll('blockquote.twitter-tweet').forEach(function(bq) {
-      // Extract tweet ID from the last anchor in the blockquote
       var links = bq.querySelectorAll('a[href]');
       var lastLink = links[links.length - 1];
       if (!lastLink) return;
@@ -19,7 +15,6 @@
       if (!m) return;
       var container = bq.closest('.nl-embed-tweet') || bq.parentElement;
       var w = (container ? container.offsetWidth : 0) || Math.min(window.innerWidth || 550, 550);
-      // Replace blockquote with a plain div so widgets.js won't auto-process it
       var placeholder = document.createElement('div');
       bq.parentNode.replaceChild(placeholder, bq);
       tweets.push({ id: m[1], el: placeholder, width: Math.floor(Math.min(w, 550)) });
@@ -27,17 +22,17 @@
 
     if (!tweets.length) return;
 
-    // Queue callback: runs as soon as widgets.js is ready
-    window.twttr._e.push(function(twttr) {
-      tweets.forEach(function(t) {
-        twttr.widgets.createTweet(t.id, t.el, { width: t.width });
-      });
-    });
-
-    // Load widgets.js (will flush _e queue on load)
     var s = document.createElement('script');
     s.src = 'https://platform.twitter.com/widgets.js';
     s.charset = 'utf-8';
+    // Use onload so twttr is fully initialised — avoids the _e array reset race
+    s.onload = function() {
+      window.twttr.ready(function(twttr) {
+        tweets.forEach(function(t) {
+          twttr.widgets.createTweet(t.id, t.el, { width: t.width });
+        });
+      });
+    };
     document.head.appendChild(s);
   }
 
