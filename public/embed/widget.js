@@ -22,6 +22,28 @@
 
     if (!tweets.length) return;
 
+    // Intercept Twitter iframes as they're added to DOM and sandbox them so they
+    // cannot navigate the parent window — fixes iOS Safari tab-restore bug where
+    // Safari redirects the whole tab to platform.twitter.com/embed/Tweet.html
+    var twitterSandbox = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mut) {
+        mut.addedNodes.forEach(function(node) {
+          if (node.nodeName === 'IFRAME' && (node.src || '').indexOf('platform.twitter.com') !== -1) {
+            node.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-forms allow-presentation');
+          }
+          // Also check children (Twitter may wrap iframe in a div first)
+          if (node.querySelectorAll) {
+            node.querySelectorAll('iframe').forEach(function(iframe) {
+              if ((iframe.src || '').indexOf('platform.twitter.com') !== -1) {
+                iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-forms allow-presentation');
+              }
+            });
+          }
+        });
+      });
+    });
+    twitterSandbox.observe(document.body, { childList: true, subtree: true });
+
     var s = document.createElement('script');
     s.src = 'https://platform.twitter.com/widgets.js';
     s.charset = 'utf-8';
