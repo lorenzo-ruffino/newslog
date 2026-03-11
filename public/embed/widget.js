@@ -86,6 +86,7 @@
   let hasScrolledUp = false;
   let notificationsEnabled = false;
   let pendingNewEntries = 0;
+  let parentPageUrl = null;
   const authorPosMap = new Map();
 
   // ─── Auto-resize (postMessage to parent) ──────────────────────────────────
@@ -126,6 +127,9 @@
     }
     if (e.data && e.data.type === 'newslog-share-copied') {
       showShareToast(labels.link_copied || 'Link copied');
+    }
+    if (e.data && e.data.type === 'newslog-parent-url' && e.data.url) {
+      parentPageUrl = e.data.url;
     }
   });
 
@@ -628,8 +632,9 @@
 
   // ─── Share ────────────────────────────────────────────────────────────────
   function getShareUrl(entryId) {
-    // Prefer explicit config, then document.referrer (= parent page URL when in iframe), then embed URL
+    // Priority: explicit config > URL sent by parent via postMessage > referrer > embed URL
     const base = script?.dataset.pageUrl
+      || parentPageUrl
       || (document.referrer ? document.referrer.split('#')[0] : null)
       || window.location.href.split('#')[0];
     return base + '#nl-entry-' + entryId;

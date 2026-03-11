@@ -101,9 +101,15 @@ router.get('/resize.js', (req, res) => {
 
     if (e.data.type === 'newslog-resize') {
       iframe.style.height = e.data.height + 'px';
-      // First time we hear from this iframe: pass the hash if present
+      // First time we hear from this iframe: send parent URL + pass hash if present
       if (!hashPassed) {
         hashPassed = true;
+        try {
+          iframe.contentWindow.postMessage({
+            type: 'newslog-parent-url',
+            url: window.location.href.split('#')[0]
+          }, '*');
+        } catch(_) {}
         passHashToIframe(iframe);
       }
     }
