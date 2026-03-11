@@ -632,8 +632,10 @@
 
   // ─── Share ────────────────────────────────────────────────────────────────
   function getShareUrl(entryId) {
-    // Priority: explicit config > URL sent by parent via postMessage > referrer > embed URL
+    // Priority: explicit config > ?pageUrl param in iframe src > postMessage > referrer > embed URL
+    const srcParam = new URLSearchParams(window.location.search).get('pageUrl');
     const base = script?.dataset.pageUrl
+      || srcParam
       || parentPageUrl
       || (document.referrer ? document.referrer.split('#')[0] : null)
       || window.location.href.split('#')[0];
