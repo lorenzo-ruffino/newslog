@@ -107,6 +107,13 @@ function migrate(db) {
     CREATE INDEX IF NOT EXISTS idx_blog_members_user ON blog_members(user_id);
     CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
   `);
+
+  // Migration: add optional title to entries
+  try {
+    db.prepare("SELECT title FROM entries LIMIT 0").get();
+  } catch {
+    db.exec("ALTER TABLE entries ADD COLUMN title TEXT DEFAULT NULL");
+  }
 }
 
 function closeDb() {

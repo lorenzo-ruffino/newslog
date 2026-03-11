@@ -150,6 +150,7 @@ function renderExportEntry(entry, opts, labels, locale, timezone, baseUrl = '', 
     ${badge}
     <time style="font-size:0.75rem;color:#94A3B8;margin-left:auto;" datetime="${entry.created_at}">${timeStr}</time>
   </div>
+  ${entry.title ? `<div style="font-size:1.05rem;font-weight:700;margin-bottom:4px;">${escapeHtml(entry.title)}</div>` : ''}
   <div style="font-size:0.9375rem;line-height:1.6;">${inlineImages ? inlineContentImages(entry.content) : entry.content}</div>
 </div>`;
 }

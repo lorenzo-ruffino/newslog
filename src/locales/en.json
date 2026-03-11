@@ -88,7 +88,8 @@
     "image": "Upload image",
     "video": "Upload video",
     "audio": "Upload audio",
-    "embed_url": "Embed URL"
+    "embed_url": "Embed URL",
+    "title_placeholder": "Title (optional)"
   },
   "widget": {
     "live_badge": "LIVE",
@@ -102,7 +103,10 @@
     "enable_notifications": "Enable notifications",
     "notifications_enabled": "Notifications active",
     "notification_title": "{{blog_title}} — Breaking",
-    "scroll_to_top": "Back to top"
+    "scroll_to_top": "Back to top",
+    "share": "Share",
+    "link_copied": "Link copied",
+    "shared_entry": "Shared entry"
   },
   "theme": {
     "title": "Customize theme",

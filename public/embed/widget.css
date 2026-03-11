@@ -104,6 +104,14 @@ body { font-family: var(--nl-font, -apple-system, BlinkMacSystemFont, 'Segoe UI'
 .nl-type-pinned { background: var(--nl-pinned, #F59E0B); color: #fff; }
 .nl-type-summary { background: #0D9488; color: #fff; }
 
+.nl-entry-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin-bottom: 6px;
+  color: var(--nl-text, #1E293B);
+}
+
 .nl-entry-content { font-size: 0.9375rem; line-height: 1.65; color: var(--nl-text, #1E293B); overflow: hidden; word-break: break-word; }
 .nl-entry-content p { margin-bottom: 8px; }
 .nl-entry-content p:last-child { margin-bottom: 0; }
@@ -194,6 +202,75 @@ body[data-mode="dark"] .nl-widget {
   .nl-container { padding: 12px; }
   .nl-title { font-size: 1.1rem; }
   .nl-entry-header { gap: 6px; }
+}
+
+/* Share button */
+.nl-entry-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+  padding-top: 4px;
+}
+.nl-share-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--nl-text2, #64748B);
+  padding: 4px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+.nl-entry:hover .nl-share-btn,
+.nl-share-btn:focus {
+  opacity: 1;
+}
+/* Su mobile mostra sempre (no hover) */
+@media (hover: none) {
+  .nl-share-btn { opacity: 0.6; }
+}
+.nl-share-btn:hover {
+  color: var(--nl-primary, #2563EB);
+}
+
+/* Highlight per entry condivisa */
+.nl-highlight {
+  animation: nl-highlight-pulse 3s ease-out;
+}
+@keyframes nl-highlight-pulse {
+  0%, 15% { box-shadow: 0 0 0 3px var(--nl-primary, #2563EB); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+/* Shared entry separator */
+.nl-shared-separator {
+  text-align: center;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--nl-text2, #64748B);
+  padding: 12px 0 4px;
+}
+
+/* Share toast */
+.nl-share-toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--nl-text, #1E293B);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+  z-index: 1000;
+}
+.nl-share-toast.nl-show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 /* Animation */

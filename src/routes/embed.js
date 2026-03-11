@@ -92,6 +92,29 @@ router.get('/resize.js', (req, res) => {
       });
     }
   }, {passive: true});
+
+  // Deep-link: pass hash fragment to iframe on load
+  function passHashToIframes() {
+    var hash = window.location.hash;
+    if (hash && hash.indexOf('#nl-entry-') === 0) {
+      if (!iframes.length) findIframes();
+      iframes.forEach(function(iframe) {
+        try {
+          iframe.contentWindow.postMessage({
+            type: 'newslog-scrollto',
+            entryId: hash.replace('#nl-entry-', '')
+          }, '*');
+        } catch(_) {}
+      });
+    }
+  }
+  window.addEventListener('hashchange', passHashToIframes);
+  // On first load, wait for iframe ready then pass hash
+  window.addEventListener('message', function(e) {
+    if (e.data && e.data.type === 'newslog-resize') {
+      passHashToIframes();
+    }
+  });
 })();`);
 });
 
@@ -131,6 +154,7 @@ function renderWidgetHtml(db, blog, entries, settings, locale, timezone, totalEn
     enable_notifications: 'Enable notifications',
     notifications_enabled: 'Notifications enabled',
     notification_title: '{{blog_title}} — Breaking',
+    share: 'Share', link_copied: 'Link copied', shared_entry: 'Shared entry',
   } : {
     live: 'IN DIRETTA', paused: 'IN PAUSA', ended: 'TERMINATO',
     new_updates: 'Nuovi aggiornamenti', powered_by: 'Powered by NewsLog',
@@ -138,6 +162,7 @@ function renderWidgetHtml(db, blog, entries, settings, locale, timezone, totalEn
     enable_notifications: 'Attiva notifiche',
     notifications_enabled: 'Notifiche attive',
     notification_title: '{{blog_title}} — Breaking',
+    share: 'Condividi', link_copied: 'Link copiato', shared_entry: 'Messaggio condiviso',
   };
 
   const entryStyle = layout.entry_style || 'card';
@@ -237,7 +262,13 @@ function renderEntry(entry, style, showAvatars, showTimestamps, labels, locale, 
       ${typeBadge}
       ${showTimestamps ? `<time class="nl-time" datetime="${entry.created_at}">${dateStr}</time>` : ''}
     </div>
+    ${entry.title ? `<div class="nl-entry-title">${escapeHtml(entry.title)}</div>` : ''}
     <div class="nl-entry-content">${entry.content}</div>
+    <div class="nl-entry-footer">
+      <button class="nl-share-btn" data-entry-id="${entry.id}" aria-label="Share">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+      </button>
+    </div>
   </div>`;
 }
 

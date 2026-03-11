@@ -369,6 +369,7 @@ function createEntryElement(entry) {
       ${typeBadge}
       <time class="entry-time">${formatDate(entry.created_at)}</time>
     </div>
+    ${entry.title ? `<div class="entry-title">${escHtml(entry.title)}</div>` : ''}
     <div class="entry-content">${entry.content}</div>
     ${canEdit ? `<div class="entry-actions">
       <button class="entry-action-btn" title="${t('editor.pin_entry')}" data-action="pin">
@@ -415,12 +416,21 @@ async function handleEntryAction(entry, action) {
 function showEditModal(entry) {
   showModal({
     title: t('editor.edit_entry'),
-    body: `<div class="form-group"><label>${t('common.edit')}</label><textarea id="edit-content" style="min-height:120px;">${escHtml(entry.content.replace(/<[^>]+>/g, ''))}</textarea></div>`,
+    body: `
+      <div class="form-group">
+        <label>${t('editor.title_placeholder') || 'Titolo (opzionale)'}</label>
+        <input type="text" id="edit-title" maxlength="200" value="${escHtml(entry.title || '')}" placeholder="${t('editor.title_placeholder') || 'Titolo (opzionale)'}">
+      </div>
+      <div class="form-group">
+        <label>${t('common.edit')}</label>
+        <textarea id="edit-content" style="min-height:120px;">${escHtml(entry.content.replace(/<[^>]+>/g, ''))}</textarea>
+      </div>`,
     actions: [
       { label: t('common.cancel'), cls: 'btn-secondary', action: closeModal },
       { label: t('common.save'), cls: 'btn-primary', action: async () => {
         const content = document.getElementById('edit-content').value;
-        await api('PATCH', `/api/blogs/${state.activeBlog.slug}/entries/${entry.id}`, { content });
+        const title = document.getElementById('edit-title').value.trim() || null;
+        await api('PATCH', `/api/blogs/${state.activeBlog.slug}/entries/${entry.id}`, { content, title });
         await loadEntries();
         updatePreviewIframe();
         closeModal();
@@ -641,6 +651,8 @@ async function publishEntry() {
   if (!editor || !state.activeBlog) return;
   const rawText = editor.innerText.trim();
   if (!rawText) return;
+  const titleInput = document.getElementById('compose-title');
+  const title = titleInput?.value.trim() || null;
 
   // Strip embed URLs from editor DOM, then read innerHTML.
   // Strategy: unwrap all inline spans first (mobile browsers like Android Chrome may
@@ -700,6 +712,7 @@ async function publishEntry() {
     const entry = await api('POST', `/api/blogs/${state.activeBlog.slug}/entries`, {
       content: fullContent,
       entry_type: state.entryType,
+      title,
     });
 
     // Play sound immediately on publish
@@ -722,6 +735,7 @@ async function publishEntry() {
     }
 
     editor.innerHTML = '';
+    if (titleInput) titleInput.value = '';
     state.pendingEmbeds = [];
     renderEmbedPreviews();
     document.getElementById('char-count').textContent = t('editor.char_count', { count: 0 });
@@ -1422,7 +1436,7 @@ function showEmbedSnippet() {
   const baseUrl = location.origin;
   const embedId = state.activeBlog.numeric_id || state.activeBlog.slug;
   const frameId = `nl-frame-${embedId}`;
-  const snippet = `<iframe\n  id="${frameId}"\n  src="${baseUrl}/embed/${embedId}"\n  style="width:100%;border:none;display:block;overflow:hidden;"\n  scrolling="no"\n  loading="lazy"\n  allow="autoplay; notifications"\n  sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"\n></iframe>\n<script>\nwindow.addEventListener('message', function(e) {\n  if (e.data && e.data.type === 'newslog-resize') {\n    var iframe = document.getElementById('${frameId}');\n    if (iframe) iframe.style.height = e.data.height + 'px';\n  }\n});\n<\/script>`;
+  const snippet = `<iframe\n  id="${frameId}"\n  src="${baseUrl}/embed/${embedId}"\n  style="width:100%;border:none;display:block;overflow:hidden;"\n  scrolling="no"\n  loading="lazy"\n  allow="autoplay; notifications"\n  sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"\n></iframe>\n<script>\nwindow.addEventListener('message', function(e) {\n  if (e.data && e.data.type === 'newslog-resize') {\n    var iframe = document.getElementById('${frameId}');\n    if (iframe) iframe.style.height = e.data.height + 'px';\n  }\n});\n// Deep-link support\nif (window.location.hash && window.location.hash.indexOf('#nl-entry-') === 0) {\n  var checkReady = setInterval(function() {\n    var iframe = document.getElementById('${frameId}');\n    if (iframe && iframe.contentWindow) {\n      iframe.contentWindow.postMessage({ type: 'newslog-scrollto', entryId: window.location.hash.replace('#nl-entry-', '') }, '*');\n      clearInterval(checkReady);\n    }\n  }, 200);\n  setTimeout(function() { clearInterval(checkReady); }, 5000);\n}\nwindow.addEventListener('hashchange', function() {\n  var hash = window.location.hash;\n  if (hash && hash.indexOf('#nl-entry-') === 0) {\n    var iframe = document.getElementById('${frameId}');\n    if (iframe) iframe.contentWindow.postMessage({ type: 'newslog-scrollto', entryId: hash.replace('#nl-entry-', '') }, '*');\n  }\n});\n<\/script>`;
 
   showModal({
     title: t('blog.embed_snippet'),

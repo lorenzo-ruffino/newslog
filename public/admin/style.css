@@ -262,6 +262,33 @@ img { max-width: 100%; }
 .type-btn.active[data-type="pinned"] { background: var(--pinned); color: #fff; }
 .type-btn.active[data-type="summary"] { background: var(--summary); color: #fff; }
 
+.compose-title {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px 8px 0 0;
+  font-size: 1rem;
+  font-weight: 600;
+  background: var(--bg-surface);
+  color: var(--text);
+  outline: none;
+  margin-bottom: -1px; /* fonde con il bordo del compose-area */
+}
+.compose-title:focus {
+  border-color: var(--accent);
+}
+.compose-title::placeholder {
+  font-weight: 400;
+  color: var(--text3);
+}
+
+.entry-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: var(--text);
+}
+
 .compose-editor {
   width: 100%; min-height: 88px; max-height: 240px; overflow-y: auto;
   background: var(--bg-raised); border: 1px solid var(--border);

@@ -121,6 +121,9 @@
         pendingNewEntries = 0;
       }
     }
+    if (e.data && e.data.type === 'newslog-scrollto') {
+      scrollToEntry(e.data.entryId);
+    }
   });
 
   window.nlScrollToTop = function () {
@@ -499,8 +502,19 @@
         ${typeBadge}
         <time class="nl-time" datetime="${entry.created_at}">${dateStr}</time>
       </div>
+      ${entry.title ? `<div class="nl-entry-title">${esc(entry.title)}</div>` : ''}
       <div class="nl-entry-content">${entry.content}</div>
+      <div class="nl-entry-footer">
+        <button class="nl-share-btn" data-entry-id="${entry.id}" aria-label="${labels.share || 'Share'}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        </button>
+      </div>
     `;
+
+    const shareBtn = el.querySelector('.nl-share-btn');
+    if (shareBtn) {
+      shareBtn.addEventListener('click', () => shareEntry(entry.id));
+    }
 
     // Lazy load embeds via Intersection Observer
     if ('IntersectionObserver' in window) {
@@ -608,6 +622,96 @@
       });
     });
   }
+
+  // ─── Share ────────────────────────────────────────────────────────────────
+  function shareEntry(entryId) {
+    const pageUrl = script?.dataset.pageUrl || window.location.href.split('#')[0];
+    const shareUrl = pageUrl + '#nl-entry-' + entryId;
+
+    if (navigator.share) {
+      navigator.share({ url: shareUrl }).catch(() => {});
+    } else if (navigator.clipboard) {
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        showShareToast(labels.link_copied || 'Link copied');
+      }).catch(() => {
+        fallbackCopy(shareUrl);
+      });
+    } else {
+      fallbackCopy(shareUrl);
+    }
+  }
+
+  function fallbackCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+    showShareToast(labels.link_copied || 'Link copied');
+  }
+
+  function showShareToast(msg) {
+    let toast = document.getElementById('nl-share-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'nl-share-toast';
+      toast.className = 'nl-share-toast';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.classList.add('nl-show');
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => toast.classList.remove('nl-show'), 2000);
+  }
+
+  // Bind share buttons on server-rendered entries
+  document.querySelectorAll('.nl-share-btn[data-entry-id]').forEach(btn => {
+    btn.addEventListener('click', () => shareEntry(btn.dataset.entryId));
+  });
+
+  // ─── Deep-link scroll ─────────────────────────────────────────────────────
+  function scrollToEntry(targetId) {
+    const el = document.getElementById('nl-entry-' + targetId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('nl-highlight');
+      setTimeout(() => el.classList.remove('nl-highlight'), 3000);
+      return;
+    }
+
+    // Entry not in DOM (paginated) — load via API
+    fetch(`/api/blogs/${blogSlug}/entries/${targetId}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(entry => {
+        if (!entry) return;
+        const newEl = buildEntryEl(entry, true);
+        const feedEl = document.getElementById('nl-feed');
+        if (!feedEl) return;
+
+        const separator = document.createElement('div');
+        separator.className = 'nl-shared-separator';
+        separator.textContent = labels.shared_entry || 'Shared entry';
+        feedEl.appendChild(separator);
+        feedEl.appendChild(newEl);
+
+        newEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        newEl.classList.add('nl-highlight');
+        setTimeout(() => newEl.classList.remove('nl-highlight'), 3000);
+        notifyResize();
+      })
+      .catch(() => {});
+  }
+
+  function scrollToTargetEntry() {
+    const hash = window.location.hash || '';
+    const match = hash.match(/^#nl-entry-(.+)$/);
+    if (!match) return;
+    scrollToEntry(match[1]);
+  }
+
+  scrollToTargetEntry();
 
   // ─── Connect ──────────────────────────────────────────────────────────────
   if (isLive) {

@@ -168,11 +168,12 @@ router.post('/blogs/:slug/entries', requireAuth, requireBlogAccess, (req, res) =
     return res.status(400).json({ error: 'Blog is not accepting new entries' });
   }
 
-  const { content, entry_type = 'update' } = req.body;
+  const { content, entry_type = 'update', title } = req.body;
   if (!content?.trim()) return res.status(400).json({ error: 'Content is required' });
   if (!['update', 'breaking', 'pinned', 'summary'].includes(entry_type)) {
     return res.status(400).json({ error: 'Invalid entry type' });
   }
+  const safeTitle = title ? sanitize(title).replace(/<[^>]+>/g, '').trim().slice(0, 200) || null : null;
 
   const db = getDb();
   const id = uuidv4();
@@ -192,9 +193,9 @@ router.post('/blogs/:slug/entries', requireAuth, requireBlogAccess, (req, res) =
   }
 
   db.prepare(`
-    INSERT INTO entries (id, blog_id, author_id, content, entry_type, is_pinned)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(id, blog.id, req.user.id, sanitized, entry_type, isPinned);
+    INSERT INTO entries (id, blog_id, author_id, content, entry_type, is_pinned, title)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(id, blog.id, req.user.id, sanitized, entry_type, isPinned, safeTitle);
 
   const entry = formatEntry(db.prepare('SELECT * FROM entries WHERE id = ?').get(id), db);
   entryCache.delete(blog.slug);
@@ -218,9 +219,13 @@ router.patch('/blogs/:slug/entries/:id', requireAuth, requireBlogAccess, (req, r
     return res.status(403).json({ error: 'Forbidden' });
   }
 
-  const { content, entry_type } = req.body;
+  const { content, entry_type, title } = req.body;
   if (content !== undefined) {
     db.prepare('UPDATE entries SET content = ?, updated_at = datetime(\'now\') WHERE id = ?').run(sanitize(content), entry.id);
+  }
+  if (title !== undefined) {
+    const safeTitle = title ? sanitize(title).replace(/<[^>]+>/g, '').trim().slice(0, 200) || null : null;
+    db.prepare("UPDATE entries SET title = ?, updated_at = datetime('now') WHERE id = ?").run(safeTitle, entry.id);
   }
   if (entry_type !== undefined) {
     if (!['update', 'breaking', 'pinned', 'summary'].includes(entry_type)) {
@@ -235,6 +240,18 @@ router.patch('/blogs/:slug/entries/:id', requireAuth, requireBlogAccess, (req, r
   broadcastToPublic(blog.slug, 'update_entry', updated, entry.id);
 
   res.json(updated);
+});
+
+// GET /api/blogs/:slug/entries/:id — single entry (public, no auth)
+router.get('/blogs/:slug/entries/:id', (req, res) => {
+  const blog = getBlogBySlug(req.params.slug);
+  if (!blog) return res.status(404).json({ error: 'Blog not found' });
+
+  const db = getDb();
+  const entry = db.prepare('SELECT * FROM entries WHERE id = ? AND blog_id = ?').get(req.params.id, blog.id);
+  if (!entry) return res.status(404).json({ error: 'Entry not found' });
+
+  res.json(formatEntry(entry, db));
 });
 
 // DELETE /api/blogs/:slug/entries/:id
