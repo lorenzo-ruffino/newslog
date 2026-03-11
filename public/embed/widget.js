@@ -702,12 +702,24 @@
   });
 
   // ─── Deep-link scroll ─────────────────────────────────────────────────────
+  // The iframe has no scrollbar — all scrolling happens in the parent page.
+  // We tell the parent to scroll to the entry's offsetTop within the iframe.
+  function scrollEntryIntoView(el) {
+    el.classList.add('nl-highlight');
+    setTimeout(() => el.classList.remove('nl-highlight'), 3000);
+    // Small delay to let the DOM/resize settle before measuring position
+    setTimeout(() => {
+      window.parent.postMessage({
+        type: 'newslog-scroll-to-entry',
+        offsetTop: el.offsetTop
+      }, '*');
+    }, 100);
+  }
+
   function scrollToEntry(targetId) {
     const el = document.getElementById('nl-entry-' + targetId);
     if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      el.classList.add('nl-highlight');
-      setTimeout(() => el.classList.remove('nl-highlight'), 3000);
+      scrollEntryIntoView(el);
       return;
     }
 
@@ -726,10 +738,9 @@
         feedEl.appendChild(separator);
         feedEl.appendChild(newEl);
 
-        newEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        newEl.classList.add('nl-highlight');
-        setTimeout(() => newEl.classList.remove('nl-highlight'), 3000);
         notifyResize();
+        // Wait for resize + repaint before scrolling
+        setTimeout(() => scrollEntryIntoView(newEl), 200);
       })
       .catch(() => {});
   }
