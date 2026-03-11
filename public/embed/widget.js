@@ -638,21 +638,28 @@
   function shareEntry(entryId) {
     const shareUrl = getShareUrl(entryId);
 
-    // Ask parent to share — navigator.share is blocked in sandboxed iframes on iOS/Android.
-    // The parent's resize.js listens for newslog-share and calls navigator.share itself.
-    window.parent.postMessage({ type: 'newslog-share', url: shareUrl, entryId }, '*');
-  }
-
-  function copyToClipboard(text) {
-    if (navigator.clipboard) {
-      return navigator.clipboard.writeText(text)
-        .then(() => true)
-        .catch(() => fallbackCopy(text));
+    // On mobile, prefer native share sheet via parent (navigator.share can be
+    // blocked in sandboxed iframes). On desktop, copy to clipboard directly
+    // here — clipboard requires a user gesture (click), which we have.
+    if (navigator.share) {
+      // Try native share directly first; if blocked in sandbox, fall through to clipboard
+      navigator.share({ url: shareUrl }).catch(() => copyShareUrl(shareUrl));
+    } else {
+      copyShareUrl(shareUrl);
     }
-    return Promise.resolve(fallbackCopy(text));
   }
 
-  function fallbackCopy(text) {
+  function copyShareUrl(url) {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url)
+        .then(() => showShareToast(labels.link_copied || 'Link copied'))
+        .catch(() => execCopyShare(url));
+    } else {
+      execCopyShare(url);
+    }
+  }
+
+  function execCopyShare(text) {
     try {
       const ta = document.createElement('textarea');
       ta.value = text;
@@ -662,8 +669,8 @@
       ta.select();
       document.execCommand('copy');
       ta.remove();
-      return true;
-    } catch (_) { return false; }
+      showShareToast(labels.link_copied || 'Link copied');
+    } catch (_) {}
   }
 
   function showShareToast(msg) {

@@ -218,16 +218,7 @@ body[data-mode="dark"] .nl-widget {
   color: var(--nl-text2, #64748B);
   padding: 4px;
   border-radius: 4px;
-  opacity: 0;
-  transition: opacity 0.15s, color 0.15s;
-}
-.nl-entry:hover .nl-share-btn,
-.nl-share-btn:focus {
-  opacity: 1;
-}
-/* Su mobile mostra sempre (no hover) */
-@media (hover: none) {
-  .nl-share-btn { opacity: 1; }
+  transition: color 0.15s;
 }
 .nl-share-btn:hover {
   color: var(--nl-primary, #2563EB);
