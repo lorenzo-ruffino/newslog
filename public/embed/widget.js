@@ -642,12 +642,14 @@
 
   function shareEntry(entryId) {
     const shareUrl = getShareUrl(entryId);
+    const inIframe = window.parent !== window;
 
-    // On mobile, prefer native share sheet via parent (navigator.share can be
-    // blocked in sandboxed iframes). On desktop, copy to clipboard directly
-    // here — clipboard requires a user gesture (click), which we have.
-    if (navigator.share) {
-      // Try native share directly first; if blocked in sandbox, fall through to clipboard
+    if (inIframe) {
+      // Delegate to parent: navigator.share is blocked in sandboxed iframes on iOS/Android.
+      // Parent's resize.js/snippet handles newslog-share, calls navigator.share there,
+      // then sends newslog-share-copied back to trigger the toast here.
+      window.parent.postMessage({ type: 'newslog-share', url: shareUrl }, '*');
+    } else if (navigator.share) {
       navigator.share({ url: shareUrl }).catch(() => copyShareUrl(shareUrl));
     } else {
       copyShareUrl(shareUrl);
