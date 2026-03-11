@@ -50,36 +50,104 @@ router.get('/:idOrSlug', (req, res) => {
 router.get('/resize.js', (req, res) => {
   res.set('Content-Type', 'application/javascript');
   res.send(`(function(){
-  var iframes = [];
-  function findIframes() {
-    iframes = Array.from(document.querySelectorAll('iframe[src*="newslog"], iframe[src*="liveblog"]'));
-  }
-  window.addEventListener('message', function(e) {
-    if (e.data && e.data.type === 'newslog-resize') {
-      findIframes();
-      iframes.forEach(function(iframe) {
-        if (iframe.contentWindow === e.source) {
-          iframe.style.height = e.data.height + 'px';
-        }
-      });
+  var knownIframes = [];
+  function findIframeBySource(source) {
+    for (var i = 0; i < knownIframes.length; i++) {
+      if (knownIframes[i].contentWindow === source) return knownIframes[i];
     }
-    if (e.data && e.data.type === 'newslog-scrolltop') {
-      findIframes();
-      iframes.forEach(function(iframe) {
-        if (iframe.contentWindow === e.source) {
-          iframe.scrollIntoView({behavior: 'smooth', block: 'start'});
+    var all = document.querySelectorAll('iframe');
+    for (var i = 0; i < all.length; i++) {
+      try {
+        if (all[i].contentWindow === source) {
+          knownIframes.push(all[i]);
+          return all[i];
         }
-      });
+      } catch(_) {}
+    }
+    return null;
+  }
+
+  // Deep-link: pass hash fragment to a specific iframe
+  var hashPassed = false;
+  function passHashToIframe(iframe) {
+    var hash = window.location.hash;
+    if (hash && hash.indexOf('#nl-entry-') === 0) {
+      try {
+        iframe.contentWindow.postMessage({
+          type: 'newslog-scrollto',
+          entryId: hash.replace('#nl-entry-', '')
+        }, '*');
+      } catch(_) {}
+    }
+  }
+  function passHashToAll() {
+    var hash = window.location.hash;
+    if (!hash || hash.indexOf('#nl-entry-') !== 0) return;
+    knownIframes.forEach(function(iframe) {
+      try {
+        iframe.contentWindow.postMessage({
+          type: 'newslog-scrollto',
+          entryId: hash.replace('#nl-entry-', '')
+        }, '*');
+      } catch(_) {}
+    });
+  }
+  window.addEventListener('hashchange', passHashToAll);
+
+  window.addEventListener('message', function(e) {
+    if (!e.data || !e.data.type) return;
+    var iframe = findIframeBySource(e.source);
+    if (!iframe) return;
+
+    if (e.data.type === 'newslog-resize') {
+      iframe.style.height = e.data.height + 'px';
+      // First time we hear from this iframe: pass the hash if present
+      if (!hashPassed) {
+        hashPassed = true;
+        passHashToIframe(iframe);
+      }
+    }
+    if (e.data.type === 'newslog-scrolltop') {
+      iframe.scrollIntoView({behavior: 'smooth', block: 'start'});
+    }
+    if (e.data.type === 'newslog-share') {
+      var shareUrl = e.data.url;
+      if (navigator.share) {
+        navigator.share({ url: shareUrl }).catch(function() {
+          fallbackShareCopy(iframe, shareUrl);
+        });
+      } else {
+        fallbackShareCopy(iframe, shareUrl);
+      }
     }
   });
+  function fallbackShareCopy(iframe, url) {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).then(function() {
+        try { iframe.contentWindow.postMessage({ type: 'newslog-share-copied' }, '*'); } catch(_) {}
+      }).catch(function() { execCopy(iframe, url); });
+    } else {
+      execCopy(iframe, url);
+    }
+  }
+  function execCopy(iframe, url) {
+    var ta = document.createElement('textarea');
+    ta.value = url;
+    ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    try { document.execCommand('copy'); } catch(_) {}
+    ta.remove();
+    try { iframe.contentWindow.postMessage({ type: 'newslog-share-copied' }, '*'); } catch(_) {}
+  }
+
   // Send scroll position to iframes so they can show "new updates" banner
   var ticking = false;
   window.addEventListener('scroll', function() {
     if (!ticking) {
       ticking = true;
       requestAnimationFrame(function() {
-        if (!iframes.length) findIframes();
-        iframes.forEach(function(iframe) {
+        knownIframes.forEach(function(iframe) {
           try {
             var rect = iframe.getBoundingClientRect();
             iframe.contentWindow.postMessage({
@@ -92,29 +160,6 @@ router.get('/resize.js', (req, res) => {
       });
     }
   }, {passive: true});
-
-  // Deep-link: pass hash fragment to iframe on load
-  function passHashToIframes() {
-    var hash = window.location.hash;
-    if (hash && hash.indexOf('#nl-entry-') === 0) {
-      if (!iframes.length) findIframes();
-      iframes.forEach(function(iframe) {
-        try {
-          iframe.contentWindow.postMessage({
-            type: 'newslog-scrollto',
-            entryId: hash.replace('#nl-entry-', '')
-          }, '*');
-        } catch(_) {}
-      });
-    }
-  }
-  window.addEventListener('hashchange', passHashToIframes);
-  // On first load, wait for iframe ready then pass hash
-  window.addEventListener('message', function(e) {
-    if (e.data && e.data.type === 'newslog-resize') {
-      passHashToIframes();
-    }
-  });
 })();`);
 });
 

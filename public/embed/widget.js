@@ -124,6 +124,9 @@
     if (e.data && e.data.type === 'newslog-scrollto') {
       scrollToEntry(e.data.entryId);
     }
+    if (e.data && e.data.type === 'newslog-share-copied') {
+      showShareToast(labels.link_copied || 'Link copied');
+    }
   });
 
   window.nlScrollToTop = function () {
@@ -624,32 +627,43 @@
   }
 
   // ─── Share ────────────────────────────────────────────────────────────────
-  function shareEntry(entryId) {
-    const pageUrl = script?.dataset.pageUrl || window.location.href.split('#')[0];
-    const shareUrl = pageUrl + '#nl-entry-' + entryId;
+  function getShareUrl(entryId) {
+    // Prefer explicit config, then document.referrer (= parent page URL when in iframe), then embed URL
+    const base = script?.dataset.pageUrl
+      || (document.referrer ? document.referrer.split('#')[0] : null)
+      || window.location.href.split('#')[0];
+    return base + '#nl-entry-' + entryId;
+  }
 
-    if (navigator.share) {
-      navigator.share({ url: shareUrl }).catch(() => {});
-    } else if (navigator.clipboard) {
-      navigator.clipboard.writeText(shareUrl).then(() => {
-        showShareToast(labels.link_copied || 'Link copied');
-      }).catch(() => {
-        fallbackCopy(shareUrl);
-      });
-    } else {
-      fallbackCopy(shareUrl);
+  function shareEntry(entryId) {
+    const shareUrl = getShareUrl(entryId);
+
+    // Ask parent to share — navigator.share is blocked in sandboxed iframes on iOS/Android.
+    // The parent's resize.js listens for newslog-share and calls navigator.share itself.
+    window.parent.postMessage({ type: 'newslog-share', url: shareUrl, entryId }, '*');
+  }
+
+  function copyToClipboard(text) {
+    if (navigator.clipboard) {
+      return navigator.clipboard.writeText(text)
+        .then(() => true)
+        .catch(() => fallbackCopy(text));
     }
+    return Promise.resolve(fallbackCopy(text));
   }
 
   function fallbackCopy(text) {
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.cssText = 'position:fixed;opacity:0';
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    ta.remove();
-    showShareToast(labels.link_copied || 'Link copied');
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+      return true;
+    } catch (_) { return false; }
   }
 
   function showShareToast(msg) {
