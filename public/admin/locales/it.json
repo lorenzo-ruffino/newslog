@@ -51,7 +51,11 @@
     "status_change": "Cambia stato",
     "set_live": "Vai in diretta",
     "set_paused": "Metti in pausa",
-    "set_ended": "Termina"
+    "set_ended": "Termina",
+    "restricted_access": "Accesso ristretto",
+    "restricted_access_help": "Se attivo, solo gli utenti invitati possono aprire e modificare questo live blog. Gli altri lo vedono ma non possono accedervi.",
+    "restricted_on": "Accesso ristretto attivato",
+    "restricted_off": "Accesso ristretto disattivato"
   },
   "editor": {
     "compose_label": "Nuovo aggiornamento",

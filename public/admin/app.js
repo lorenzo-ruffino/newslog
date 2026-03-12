@@ -965,11 +965,11 @@ function renderThemePanel(panel) {
   const entryStyle = layout.entry_style || 'card';
 
   panel.innerHTML = `
-    <div class="theme-section">
+    <div class="theme-section theme-widget-section">
       <div class="theme-section-title">${t('theme.widget_header')}</div>
-      <div class="theme-row">
-        <label>${t('theme.widget_title_label')}</label>
-        <input type="text" id="theme-widget-title" class="theme-text-input" value="${escHtml(theme.widget_title || '')}" placeholder="Liveblog">
+      <div class="theme-field">
+        <label class="theme-field-label" for="theme-widget-title">${t('theme.widget_title_label')}</label>
+        <input type="text" id="theme-widget-title" class="theme-text-input theme-widget-input" value="${escHtml(theme.widget_title || '')}" placeholder="Liveblog">
       </div>
     </div>
 
@@ -1181,11 +1181,17 @@ function renderMembersPanel() {
   const isRestricted = state.activeBlog.settings?.restricted === true;
   panel.innerHTML = `
     ${state.user.role === 'admin' ? `
-    <div class="theme-row" style="margin-bottom:12px;">
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-        <input type="checkbox" id="blog-restricted" ${isRestricted ? 'checked' : ''}>
-        <span>${t('blog.restricted_access')}</span>
-      </label>
+    <div class="restricted-card">
+      <div class="restricted-row">
+        <div class="restricted-text">
+          <div class="restricted-title">${t('blog.restricted_access')}</div>
+          <div class="restricted-help">${t('blog.restricted_access_help')}</div>
+        </div>
+        <label class="switch" aria-label="${t('blog.restricted_access')}">
+          <input type="checkbox" id="blog-restricted" ${isRestricted ? 'checked' : ''}>
+          <span class="switch-track"></span>
+        </label>
+      </div>
     </div>` : ''}
     <div class="members-list">${membersHtml || `<p style="color:var(--text3);font-size:0.875rem;">${t('members.no_members')}</p>`}</div>
     ${state.user.role === 'admin' ? `
