@@ -332,20 +332,22 @@ function renderEntry(entry, style, showAvatars, showTimestamps, labels, locale, 
   const dateStr = showTimestamps ? formatDate(entry.created_at, locale, timezone) : '';
 
   return `<div class="nl-entry ${typeClass} ${pinnedClass}" id="nl-entry-${entry.id}" data-id="${entry.id}" data-created-at="${entry.created_at}" data-updated-at="${entry.updated_at || entry.created_at}" data-author-id="${entry.author_id}" data-author-pos="${authorPos}">
-    ${entry.is_pinned ? `<div class="nl-pinned-banner">${labels.pinned}</div>` : ''}
-    <div class="nl-entry-header">
-      ${showAvatars && entry.author_avatar ? `<img src="${escapeHtml(entry.author_avatar)}" class="nl-avatar" alt="${escapeHtml(entry.author_name)}" loading="lazy">` : ''}
-      ${showAvatars && !entry.author_avatar ? `<div class="nl-avatar nl-avatar-placeholder">${(entry.author_name || 'U')[0].toUpperCase()}</div>` : ''}
-      <span class="nl-author">${escapeHtml(entry.author_name || 'Unknown')}</span>
-      ${typeBadge}
-      ${showTimestamps ? `<time class="nl-time" datetime="${entry.created_at}">${dateStr}</time>` : ''}
-    </div>
-    ${entry.title ? `<div class="nl-entry-title">${escapeHtml(entry.title)}</div>` : ''}
-    <div class="nl-entry-content">${entry.content}</div>
-    <div class="nl-entry-footer">
-      <button class="nl-share-btn" data-entry-id="${entry.id}" aria-label="Share">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-      </button>
+    <div class="nl-entry-body">
+      ${entry.is_pinned ? `<div class="nl-pinned-banner">${labels.pinned}</div>` : ''}
+      <div class="nl-entry-header">
+        ${showAvatars && entry.author_avatar ? `<img src="${escapeHtml(entry.author_avatar)}" class="nl-avatar" alt="${escapeHtml(entry.author_name)}" loading="lazy">` : ''}
+        ${showAvatars && !entry.author_avatar ? `<div class="nl-avatar nl-avatar-placeholder">${(entry.author_name || 'U')[0].toUpperCase()}</div>` : ''}
+        <span class="nl-author">${escapeHtml(entry.author_name || 'Unknown')}</span>
+        ${typeBadge}
+        ${showTimestamps ? `<time class="nl-time" datetime="${entry.created_at}">${dateStr}</time>` : ''}
+      </div>
+      ${entry.title ? `<div class="nl-entry-title">${escapeHtml(entry.title)}</div>` : ''}
+      <div class="nl-entry-content">${entry.content}</div>
+      <div class="nl-entry-footer">
+        <button class="nl-share-btn" data-entry-id="${entry.id}" aria-label="Share">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        </button>
+      </div>
     </div>
   </div>`;
 }
