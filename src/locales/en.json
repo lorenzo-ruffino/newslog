@@ -48,6 +48,7 @@
     "renamed": "Renamed!",
     "close_liveblog": "Close live blog",
     "restricted_access": "Restricted access (explicit members only)",
+    "restricted_access_help": "If enabled, only invited users can open and edit this live blog. Everyone else can see it but cannot access it.",
     "restricted_on": "Restricted access enabled",
     "restricted_off": "Access open to all users",
     "title_placeholder": "Live blog title",

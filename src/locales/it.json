@@ -48,6 +48,7 @@
     "renamed": "Rinominato!",
     "close_liveblog": "Chiudi liveblog",
     "restricted_access": "Accesso ristretto (solo membri espliciti)",
+    "restricted_access_help": "Se attivo, solo gli utenti invitati possono aprire e modificare questo live blog. Gli altri lo vedono ma non possono accedervi.",
     "restricted_on": "Accesso ristretto attivato",
     "restricted_off": "Accesso aperto a tutti gli utenti",
     "title_placeholder": "Titolo del live blog",
