@@ -199,6 +199,9 @@ img { max-width: 100%; }
   flex: 1; overflow: hidden;
 }
 
+.layout.right-collapsed .right-panel { display: none; }
+.layout.right-collapsed #resizer-right { display: none; }
+
 .col-resizer {
   width: 4px; flex-shrink: 0; cursor: col-resize;
   background: transparent; transition: background 0.15s;
@@ -648,6 +651,7 @@ select.theme-select {
   #btn-sound-toggle { display: none; }
   #btn-theme-toggle { display: none; }
   #btn-export { display: none; }
+  #btn-right-toggle { display: none; }
   /* Mobile view switching */
   .main-area[data-mobile-view="feed"] .composer { display: none; }
   .main-area[data-mobile-view="feed"] #typing-indicators { display: none; }

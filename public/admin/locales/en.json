@@ -16,7 +16,8 @@
     "yes": "Yes",
     "no": "No",
     "copy": "Copy",
-    "copied": "Copied!"
+    "copied": "Copied!",
+    "toggle_right_panel": "Toggle right panel"
   },
   "auth": {
     "login_title": "Sign in to NewsLog",

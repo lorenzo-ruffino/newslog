@@ -2,18 +2,31 @@
 
 ![NewsLog](public/admin/logo-rect-light.jpg)
 
-Self-hosted live blog platform. Publish real-time updates, embed them on any website via iframe, manage editors and themes — no third-party services required.
+NewsLog is a self-hosted live blog platform. It was vibe-coded, tested with real usage, and it is actively used today, so we are confident it works well in practice.
+
+It provides a live blog embed with no external dependencies beyond this service, supports multiple users and roles, and keeps sharing and deep-linking reliable across desktop, Android, and iOS.
 
 ## Features
 
-- Real-time updates via Server-Sent Events
-- Embeddable widget (iframe) for any website
-- Magic link authentication (no passwords)
-- Rich text editor with image/video/audio uploads
-- Multiple live blogs, multiple editors
-- Themes, dark/light mode, layout presets
-- Backup & restore (local download + optional S3)
-- Italian and English UI
+- Embeddable live blog with no third-party dependencies beyond this service
+- Multi-user access with admin and non-admin roles
+- Access is invite-only (only invited users can log in)
+- The first user to log in becomes admin automatically; admins can promote other users
+- Magic link authentication via email (no password management)
+- Per-blog access control (limit specific blogs to specific users)
+- Multiple languages (Italian and English)
+- Multiple themes, layout presets, and color customization
+- Author display with name and avatar
+- Rich text editor (WYSIWYG) with optional titles per update
+- Update types: standard updates, breaking, pinned, and summary
+- Search inside each live blog
+- Live blog states: live, paused, or ended
+- Posts can be edited or deleted
+- Shareable links that point to a specific post
+- Dark mode and light mode
+- Tested on desktop, Android, and iOS
+
+If you find a bug, please report it so it can be fixed. Even though this started as a vibe-coded project, it has been tested and used in real scenarios.
 
 ## Quick start with Docker
 
@@ -71,60 +84,6 @@ docker compose up -d --build
 
 Data (database + uploads) is stored in `./data/` and persists across updates.
 
-## Backup & restore
-
-From the admin UI (user menu → Backup & Restore):
-
-- **Download backup** — downloads a `.tar.gz` archive with the full database and all uploaded media
-- **Restore from file** — upload a previously downloaded archive to restore
-
-Optionally, configure S3 in `.env` for automatic scheduled backups (see `.env.example`).
-
-## Running without Docker
-
-Requires Node.js 20+.
-
-```bash
-npm install
-cp .env.example .env
-# edit .env
-node src/server.js
-```
-
-## Development
-
-```bash
-npm run dev
-```
-
-Hot-reloads the server on file changes (uses `node --watch`).
-
-## Embedding
-
-From the admin UI, open any live blog and click the `<>` button in the toolbar to get the embed snippet. Paste it into any HTML page:
-
-```html
-<iframe
-  id="nl-frame-my-blog"
-  src="https://newslog.example.com/embed/my-blog"
-  style="width:100%;border:none;display:block;"
-  scrolling="no"
-  loading="lazy"
-></iframe>
-<script>
-window.addEventListener('message', function(e) {
-  if (e.data && e.data.type === 'newslog-resize') {
-    var iframe = document.getElementById('nl-frame-my-blog');
-    if (iframe) iframe.style.height = e.data.height + 'px';
-  }
-});
-</script>
-```
-
 ## License
 
 MIT
-
----
-
-Built with [Claude Code](https://claude.ai/claude-code) by Anthropic.

@@ -76,6 +76,7 @@ async function init() {
   }
 
   showApp();
+  applyRightPanelState();
   await loadBlogs();
 
   // Show onboarding for new users who haven't set their name yet
@@ -248,7 +249,7 @@ function applyTheme(theme) {
 async function loadBlogs() {
   const blogs = await api('GET', '/api/blogs');
   if (!blogs) return;
-  state.blogs = blogs;
+  state.blogs = sortBlogs(blogs);
   renderBlogsList();
   // Auto-select most recent blog on first load
   if (blogs.length && !state.activeBlog) {
@@ -280,6 +281,15 @@ function renderBlogsList() {
     `;
     item.addEventListener('click', () => selectBlog(blog));
     list.appendChild(item);
+  });
+}
+
+function sortBlogs(blogs) {
+  return [...blogs].sort((a, b) => {
+    const ta = a.created_at ? Date.parse(a.created_at) : 0;
+    const tb = b.created_at ? Date.parse(b.created_at) : 0;
+    if (ta === tb) return (b.id || 0) - (a.id || 0);
+    return tb - ta;
   });
 }
 
@@ -1247,6 +1257,12 @@ function bindTopbarEvents() {
     if (state.soundEnabled) playNewEntrySound('update');
   });
 
+  document.getElementById('btn-right-toggle')?.addEventListener('click', () => {
+    const layout = document.getElementById('layout');
+    if (!layout) return;
+    const next = !layout.classList.contains('right-collapsed');
+    setRightPanelCollapsed(next);
+  });
 
   document.querySelectorAll('.locale-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
@@ -1378,6 +1394,18 @@ function bindTopbarEvents() {
   });
 }
 
+function setRightPanelCollapsed(collapsed) {
+  const layout = document.getElementById('layout');
+  if (!layout) return;
+  layout.classList.toggle('right-collapsed', collapsed);
+  localStorage.setItem('nl-right-panel', collapsed ? 'collapsed' : 'open');
+}
+
+function applyRightPanelState() {
+  const saved = localStorage.getItem('nl-right-panel');
+  if (saved === 'collapsed') setRightPanelCollapsed(true);
+}
+
 function showNewBlogModal() {
   showModal({
     title: t('blog.new_blog'),
@@ -1436,7 +1464,7 @@ function showEmbedSnippet() {
   const baseUrl = location.origin;
   const embedId = state.activeBlog.numeric_id || state.activeBlog.slug;
   const frameId = `nl-frame-${embedId}`;
-  const snippet = `<iframe\n  id="${frameId}"\n  src="${baseUrl}/embed/${embedId}"\n  style="width:100%;border:none;display:block;overflow:hidden;"\n  scrolling="no"\n  loading="lazy"\n  allow="autoplay; notifications"\n  sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"\n></iframe>\n<script>\n(function(){\n  var iframe = document.getElementById('${frameId}');\n  if (iframe) { var _pu = window.location.href.split('#')[0]; iframe.src = '${baseUrl}/embed/${embedId}?pageUrl=' + encodeURIComponent(_pu); }\n  var hashSent = false;\n  function sendHash() {\n    var hash = window.location.hash;\n    if (hash && hash.indexOf('#nl-entry-') === 0 && iframe && iframe.contentWindow) {\n      iframe.contentWindow.postMessage({ type: 'newslog-scrollto', entryId: hash.replace('#nl-entry-', '') }, '*');\n    }\n  }\n  function handleShare(url) {\n    if (navigator.share) {\n      navigator.share({ url: url }).catch(function() { copyUrl(url); });\n    } else { copyUrl(url); }\n  }\n  function copyUrl(url) {\n    if (navigator.clipboard) {\n      navigator.clipboard.writeText(url).then(function() {\n        if (iframe && iframe.contentWindow) iframe.contentWindow.postMessage({ type: 'newslog-share-copied' }, '*');\n      }).catch(function() { execCopy(url); });\n    } else { execCopy(url); }\n  }\n  function execCopy(url) {\n    var ta = document.createElement('textarea');\n    ta.value = url; ta.style.cssText = 'position:fixed;left:-9999px;opacity:0';\n    document.body.appendChild(ta); ta.focus(); ta.select();\n    try { document.execCommand('copy'); } catch(_) {}\n    ta.remove();\n    if (iframe && iframe.contentWindow) iframe.contentWindow.postMessage({ type: 'newslog-share-copied' }, '*');\n  }\n  window.addEventListener('message', function(e) {\n    if (!e.data || !e.data.type) return;\n    if (e.data.type === 'newslog-resize') {\n      if (iframe) iframe.style.height = e.data.height + 'px';\n      if (!hashSent) { hashSent = true; if (iframe && iframe.contentWindow) { try { iframe.contentWindow.postMessage({ type: 'newslog-parent-url', url: window.location.href.split('#')[0] }, '*'); } catch(_) {} } sendHash(); }\n    }\n    if (e.data.type === 'newslog-scrolltop') {\n      if (iframe) iframe.scrollIntoView({ behavior: 'smooth', block: 'start' });\n    }\n    if (e.data.type === 'newslog-scroll-to-entry' && iframe) {\n      var rect = iframe.getBoundingClientRect();\n      var targetY = window.scrollY + rect.top + e.data.offsetTop - 80;\n      var behavior = e.data.behavior === 'auto' ? 'auto' : 'smooth';\n      window.scrollTo({ top: Math.max(0, targetY), behavior: behavior });\n    }\n    if (e.data.type === 'newslog-share') { handleShare(e.data.url); }\n  });\n  window.addEventListener('hashchange', sendHash);\n  window.addEventListener('scroll', function() {\n    if (!iframe) return;\n    var rect = iframe.getBoundingClientRect();\n    try { iframe.contentWindow.postMessage({ type: 'newslog-scroll', iframeTop: rect.top }, '*'); } catch(_) {}\n  }, { passive: true });\n})();\n<\/script>`;
+  const snippet = `<iframe\n  id="${frameId}"\n  src="${baseUrl}/embed/${embedId}"\n  style="width:100%;border:none;display:block;overflow:hidden;"\n  scrolling="no"\n  loading="lazy"\n  allow="autoplay; notifications"\n  sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"\n></iframe>\n<script>\n(function(){\n  var iframe = document.getElementById('${frameId}');\n  if (iframe) { var _pu = window.location.href.split('#')[0]; iframe.src = '${baseUrl}/embed/${embedId}?pageUrl=' + encodeURIComponent(_pu); }\n  var hashSent = false;\n  function sendHash() {\n    var hash = window.location.hash;\n    if (hash && hash.indexOf('#nl-entry-') === 0 && iframe && iframe.contentWindow) {\n      iframe.contentWindow.postMessage({ type: 'newslog-scrollto', entryId: hash.replace('#nl-entry-', '') }, '*');\n    }\n  }\n  function handleShare(url) {\n    if (navigator.share) {\n      navigator.share({ url: url }).catch(function() { copyUrl(url); });\n    } else { copyUrl(url); }\n  }\n  function copyUrl(url) {\n    if (navigator.clipboard) {\n      navigator.clipboard.writeText(url).then(function() {\n        showCopyToast();\n        if (iframe && iframe.contentWindow) iframe.contentWindow.postMessage({ type: 'newslog-share-copied' }, '*');\n      }).catch(function() { execCopy(url); });\n    } else { execCopy(url); }\n  }\n  function execCopy(url) {\n    var ta = document.createElement('textarea');\n    ta.value = url; ta.style.cssText = 'position:fixed;left:-9999px;opacity:0';\n    document.body.appendChild(ta); ta.focus(); ta.select();\n    try { document.execCommand('copy'); } catch(_) {}\n    ta.remove();\n    showCopyToast();\n    if (iframe && iframe.contentWindow) iframe.contentWindow.postMessage({ type: 'newslog-share-copied' }, '*');\n  }\n  function showCopyToast() {\n    var toast = document.getElementById('nl-copy-toast');\n    if (!toast) {\n      toast = document.createElement('div');\n      toast.id = 'nl-copy-toast';\n      toast.textContent = getCopyLabel();\n      toast.style.cssText = 'position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#111827;color:#fff;padding:8px 12px;border-radius:999px;font-size:12px;font-family:system-ui, -apple-system, Segoe UI, sans-serif;z-index:2147483647;opacity:0;transition:opacity 160ms ease';\n      document.body.appendChild(toast);\n    } else {\n      toast.textContent = getCopyLabel();\n    }\n    toast.style.opacity = '1';\n    clearTimeout(toast._t);\n    toast._t = setTimeout(function() { toast.style.opacity = '0'; }, 1600);\n  }\n  function getCopyLabel() {\n    var lang = (document.documentElement.getAttribute('lang') || navigator.language || '').toLowerCase();\n    return lang.indexOf('it') === 0 ? 'Link copiato' : 'Link copied';\n  }\n  window.addEventListener('message', function(e) {\n    if (!e.data || !e.data.type) return;\n    if (e.data.type === 'newslog-resize') {\n      if (iframe) iframe.style.height = e.data.height + 'px';\n      if (!hashSent) { hashSent = true; if (iframe && iframe.contentWindow) { try { iframe.contentWindow.postMessage({ type: 'newslog-parent-url', url: window.location.href.split('#')[0] }, '*'); } catch(_) {} } sendHash(); }\n    }\n    if (e.data.type === 'newslog-scrolltop') {\n      if (iframe) iframe.scrollIntoView({ behavior: 'smooth', block: 'start' });\n    }\n    if (e.data.type === 'newslog-scroll-to-entry' && iframe) {\n      var rect = iframe.getBoundingClientRect();\n      var targetY = window.scrollY + rect.top + e.data.offsetTop - 40;\n      var behavior = e.data.behavior === 'auto' ? 'auto' : 'smooth';\n      window.scrollTo({ top: Math.max(0, targetY), behavior: behavior });\n    }\n    if (e.data.type === 'newslog-share') { handleShare(e.data.url); }\n  });\n  window.addEventListener('hashchange', sendHash);\n  window.addEventListener('scroll', function() {\n    if (!iframe) return;\n    var rect = iframe.getBoundingClientRect();\n    try { iframe.contentWindow.postMessage({ type: 'newslog-scroll', iframeTop: rect.top }, '*'); } catch(_) {}\n  }, { passive: true });\n})();\n<\/script>`;
 
   showModal({
     title: t('blog.embed_snippet'),

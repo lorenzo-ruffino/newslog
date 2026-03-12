@@ -118,7 +118,7 @@ router.get('/resize.js', (req, res) => {
     }
     if (e.data.type === 'newslog-scroll-to-entry') {
       var rect = iframe.getBoundingClientRect();
-      var targetY = window.scrollY + rect.top + e.data.offsetTop - 80;
+      var targetY = window.scrollY + rect.top + e.data.offsetTop - 40;
       var behavior = e.data.behavior === 'auto' ? 'auto' : 'smooth';
       window.scrollTo({ top: Math.max(0, targetY), behavior: behavior });
     }
@@ -136,6 +136,7 @@ router.get('/resize.js', (req, res) => {
   function fallbackShareCopy(iframe, url) {
     if (navigator.clipboard) {
       navigator.clipboard.writeText(url).then(function() {
+        showCopyToast();
         try { iframe.contentWindow.postMessage({ type: 'newslog-share-copied' }, '*'); } catch(_) {}
       }).catch(function() { execCopy(iframe, url); });
     } else {
@@ -150,7 +151,27 @@ router.get('/resize.js', (req, res) => {
     ta.focus(); ta.select();
     try { document.execCommand('copy'); } catch(_) {}
     ta.remove();
+    showCopyToast();
     try { iframe.contentWindow.postMessage({ type: 'newslog-share-copied' }, '*'); } catch(_) {}
+  }
+  function showCopyToast() {
+    var toast = document.getElementById('nl-copy-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'nl-copy-toast';
+      toast.textContent = getCopyLabel();
+      toast.style.cssText = 'position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#111827;color:#fff;padding:8px 12px;border-radius:999px;font-size:12px;font-family:system-ui, -apple-system, Segoe UI, sans-serif;z-index:2147483647;opacity:0;transition:opacity 160ms ease';
+      document.body.appendChild(toast);
+    } else {
+      toast.textContent = getCopyLabel();
+    }
+    toast.style.opacity = '1';
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function() { toast.style.opacity = '0'; }, 1600);
+  }
+  function getCopyLabel() {
+    var lang = (document.documentElement.getAttribute('lang') || navigator.language || '').toLowerCase();
+    return lang.indexOf('it') === 0 ? 'Link copiato' : 'Link copied';
   }
 
   // Send scroll position to iframes so they can show "new updates" banner

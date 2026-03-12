@@ -88,7 +88,7 @@
   let pendingNewEntries = 0;
   let parentPageUrl = null;
   const authorPosMap = new Map();
-  const DEEPLINK_STICKY_MS = 5000;
+  const DEEPLINK_STICKY_MS = 3000;
   let deepLinkTargetId = null;
   let deepLinkActiveUntil = 0;
   let deepLinkRefreshTimer = null;

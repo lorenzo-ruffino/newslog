@@ -16,7 +16,8 @@
     "yes": "Sì",
     "no": "No",
     "copy": "Copia",
-    "copied": "Copiato!"
+    "copied": "Copiato!",
+    "toggle_right_panel": "Mostra/nascondi pannello destro"
   },
   "auth": {
     "login_title": "Accedi a NewsLog",
