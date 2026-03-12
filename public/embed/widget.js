@@ -132,6 +132,10 @@
       scrollToEntry(e.data.entryId);
     }
     if (e.data && e.data.type === 'newslog-share-copied') {
+      if (shareCopyTimer) {
+        clearTimeout(shareCopyTimer);
+        shareCopyTimer = null;
+      }
       showShareToast(labels.link_copied || 'Link copied');
     }
     if (e.data && e.data.type === 'newslog-parent-url' && e.data.url) {
@@ -663,6 +667,12 @@
       // Parent's resize.js/snippet handles newslog-share, calls navigator.share there,
       // then sends newslog-share-copied back to trigger the toast here.
       window.parent.postMessage({ type: 'newslog-share', url: shareUrl }, '*');
+      // Fallback: if parent doesn't respond, try to copy here (desktop browsers often allow it).
+      if (shareCopyTimer) clearTimeout(shareCopyTimer);
+      shareCopyTimer = setTimeout(() => {
+        shareCopyTimer = null;
+        copyShareUrl(shareUrl);
+      }, 900);
     } else if (navigator.share) {
       navigator.share({ url: shareUrl }).catch(() => copyShareUrl(shareUrl));
     } else {
@@ -811,3 +821,4 @@
   }
 
 })();
+  let shareCopyTimer = null;
