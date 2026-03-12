@@ -267,9 +267,17 @@ body[data-mode="dark"] .nl-widget {
   padding-top: 4px;
 }
 .nl-widget[data-style="timeline"] .nl-entry-footer {
-  border-top: 1px solid var(--nl-border, #E2E8F0);
   margin-top: 8px;
-  padding-top: 6px;
+  padding-top: 0;
+}
+.nl-widget[data-style="timeline"] .nl-entry-body::after {
+  content: '';
+  display: block;
+  border-bottom: 1px solid var(--nl-border, #E2E8F0);
+  margin-top: 8px;
+}
+.nl-widget[data-style="timeline"] .nl-entry:last-child .nl-entry-body::after {
+  border-bottom: none;
 }
 .nl-share-btn {
   background: none;
