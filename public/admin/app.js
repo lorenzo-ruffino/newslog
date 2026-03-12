@@ -1906,7 +1906,8 @@ function escHtml(str) {
 }
 
 function formatDate(dateStr) {
-  const d = new Date(dateStr);
+  const normalized = typeof dateStr === 'string' && !dateStr.endsWith('Z') && !dateStr.includes('+') ? `${dateStr}Z` : dateStr;
+  const d = new Date(normalized);
   if (isNaN(d)) return dateStr;
   return d.toLocaleString(state.locale === 'en' ? 'en-US' : 'it-IT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: state.timezone });
 }
