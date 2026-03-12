@@ -118,7 +118,7 @@ router.get('/resize.js', (req, res) => {
     }
     if (e.data.type === 'newslog-scroll-to-entry') {
       var rect = iframe.getBoundingClientRect();
-      var targetY = window.scrollY + rect.top + e.data.offsetTop - 40;
+      var targetY = window.scrollY + rect.top + e.data.offsetTop - 20;
       var behavior = e.data.behavior === 'auto' ? 'auto' : 'smooth';
       window.scrollTo({ top: Math.max(0, targetY), behavior: behavior });
     }
