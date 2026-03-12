@@ -196,20 +196,34 @@
   document.addEventListener('click', unlockAudio, { once: true });
   document.addEventListener('touchstart', unlockAudio, { once: true });
 
-  function playBeep() {
+  function playBeep(type) {
     if (!audioCtx) return;
     const doPlay = () => {
       try {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
-        osc.start(audioCtx.currentTime);
-        osc.stop(audioCtx.currentTime + 0.4);
+        const now = audioCtx.currentTime;
+        if (type === 'breaking') {
+          const o = audioCtx.createOscillator();
+          const g = audioCtx.createGain();
+          o.connect(g);
+          g.connect(audioCtx.destination);
+          o.type = 'triangle';
+          o.frequency.setValueAtTime(680, now);
+          g.gain.setValueAtTime(0.18, now);
+          g.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+          o.start(now);
+          o.stop(now + 0.28);
+        } else {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(520, now);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+          osc.start(now);
+          osc.stop(now + 0.22);
+        }
       } catch (_) {}
     };
     if (audioCtx.state === 'suspended') {
@@ -288,7 +302,7 @@
       if (document.getElementById(`nl-entry-${entry.id}`)) return;
       prependEntry(entry);
       notifyResize();
-      playBeep();
+      playBeep(entry.entry_type);
     });
 
     eventSource.addEventListener('update_entry', (e) => {
@@ -345,12 +359,12 @@
         // Only show entries newer than what we already have
         if (lastEntryId) {
           const existing = document.getElementById(`nl-entry-${lastEntryId}`);
-          if (!existing) { lastEntryId = entry.id; prependEntry(entry); notifyResize(); playBeep(); continue; }
-        }
-        lastEntryId = entry.id;
-        prependEntry(entry);
-        notifyResize();
-        playBeep();
+        if (!existing) { lastEntryId = entry.id; prependEntry(entry); notifyResize(); playBeep(entry.entry_type); continue; }
+      }
+      lastEntryId = entry.id;
+      prependEntry(entry);
+      notifyResize();
+      playBeep(entry.entry_type);
       }
       // Update existing entries if they were edited (compare updated_at timestamp)
       for (const entry of entries) {
