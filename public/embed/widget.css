@@ -131,25 +131,39 @@ body { font-family: var(--nl-font, -apple-system, BlinkMacSystemFont, 'Segoe UI'
 .nl-embed-tweet .twitter-tweet { margin: 0 !important; }
 
 /* Conversation mode */
-.nl-widget[data-conversation="true"] .nl-feed { display: flex; flex-direction: column; gap: 8px; }
+.nl-widget[data-conversation="true"] .nl-feed { display: flex; flex-direction: column; gap: 12px; }
 .nl-widget[data-conversation="true"] .nl-entry {
-  width: 80%; border-radius: 16px; padding: 10px 14px;
-  border: none; border-left: none !important;
+  width: min(80%, 560px);
+  border-radius: 14px; padding: 14px 16px;
+  border: 1px solid var(--nl-border, #E2E8F0);
+  border-left: 1px solid var(--nl-border, #E2E8F0) !important;
   background: var(--nl-surface, #F8FAFC);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
   overflow: hidden; min-width: 0;
 }
 .nl-widget[data-conversation="true"] .nl-entry[data-author-pos="1"] {
   align-self: flex-end;
-  background: var(--nl-primary, #2563EB);
-  color: var(--nl-primary-text, #fff);
-  border-radius: 16px 16px 4px 16px;
+  margin-left: auto;
+  border-radius: 14px 14px 8px 14px;
 }
-.nl-widget[data-conversation="true"] .nl-entry[data-author-pos="1"] .nl-author,
-.nl-widget[data-conversation="true"] .nl-entry[data-author-pos="1"] .nl-time,
-.nl-widget[data-conversation="true"] .nl-entry[data-author-pos="1"] .nl-entry-content { color: rgba(255,255,255,0.9); }
 .nl-widget[data-conversation="true"] .nl-entry[data-author-pos="0"] {
   align-self: flex-start;
-  border-radius: 16px 16px 16px 4px;
+  margin-right: auto;
+  border-radius: 14px 14px 14px 8px;
+}
+.nl-widget[data-conversation="true"] .nl-entry[data-author-pos="1"] .nl-entry-header {
+  flex-direction: row-reverse;
+}
+.nl-widget[data-conversation="true"] .nl-entry[data-author-pos="1"] .nl-time {
+  margin-left: 0; margin-right: auto;
+}
+.nl-widget[data-conversation="true"] .nl-entry-header { margin-bottom: 8px; }
+.nl-widget[data-conversation="true"] .nl-avatar { width: 30px; height: 30px; }
+.nl-widget[data-conversation="true"] .nl-author { font-size: 0.82rem; }
+.nl-widget[data-conversation="true"] .twitter-tweet,
+.nl-widget[data-conversation="true"] .twitter-tweet iframe {
+  max-width: 100% !important;
+  width: 100% !important;
 }
 
 /* Embeds */
