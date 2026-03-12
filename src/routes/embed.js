@@ -119,7 +119,8 @@ router.get('/resize.js', (req, res) => {
     if (e.data.type === 'newslog-scroll-to-entry') {
       var rect = iframe.getBoundingClientRect();
       var targetY = window.scrollY + rect.top + e.data.offsetTop - 80;
-      window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+      var behavior = e.data.behavior === 'auto' ? 'auto' : 'smooth';
+      window.scrollTo({ top: Math.max(0, targetY), behavior: behavior });
     }
     if (e.data.type === 'newslog-share') {
       var shareUrl = e.data.url;
