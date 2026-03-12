@@ -68,7 +68,7 @@ body { font-family: var(--nl-font, -apple-system, BlinkMacSystemFont, 'Segoe UI'
   box-shadow: none;
 }
 .nl-widget[data-style="timeline"] .nl-entry::before {
-  content: ''; position: absolute; left: -6px; top: 18px;
+  content: ''; position: absolute; left: 7px; top: 18px;
   width: 14px; height: 14px; border-radius: 50%;
   background: var(--nl-bg, #fff); border: 2px solid var(--nl-border, #E2E8F0);
   box-shadow: 0 0 0 3px var(--nl-bg, #fff);
@@ -78,7 +78,7 @@ body { font-family: var(--nl-font, -apple-system, BlinkMacSystemFont, 'Segoe UI'
 .nl-widget[data-style="timeline"] .nl-entry::after {
   content: '';
   position: absolute;
-  left: 10px;
+  left: 22px;
   top: 24px;
   width: 12px;
   height: 1px;
@@ -105,13 +105,11 @@ body { font-family: var(--nl-font, -apple-system, BlinkMacSystemFont, 'Segoe UI'
 .nl-widget[data-style="timeline"] .nl-feed { position: relative; }
 .nl-widget[data-style="timeline"] .nl-entry + .nl-entry { padding-top: 8px; }
 .nl-widget[data-style="timeline"] .nl-entry-content {
-  border-bottom: 1px solid var(--nl-border, #E2E8F0);
-  padding-bottom: 12px;
-}
-.nl-widget[data-style="timeline"] .nl-entry:last-child .nl-entry-content {
   border-bottom: none;
   padding-bottom: 0;
+  margin-bottom: 0;
 }
+.nl-widget[data-style="timeline"] .nl-entry:last-child .nl-entry-content { padding-bottom: 0; }
 
 /* Entry types */
 .nl-entry-breaking { border-left-color: var(--nl-breaking, #DC2626) !important; }
@@ -126,7 +124,7 @@ body { font-family: var(--nl-font, -apple-system, BlinkMacSystemFont, 'Segoe UI'
   border-radius: 7px 7px 0 0;
 }
 .nl-widget[data-style="card"] .nl-pinned-banner { margin: -14px -16px 10px; }
-.nl-widget[data-style="timeline"] .nl-pinned-banner { margin: 0 0 8px 0; padding-left: 0; border-radius: 6px; }
+.nl-widget[data-style="timeline"] .nl-pinned-banner { margin: 0 0 8px 0; padding-left: 10px; border-radius: 6px; }
 
 /* Entry content */
 .nl-entry-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
@@ -267,6 +265,11 @@ body[data-mode="dark"] .nl-widget {
   justify-content: flex-end;
   margin-top: 8px;
   padding-top: 4px;
+}
+.nl-widget[data-style="timeline"] .nl-entry-footer {
+  border-top: 1px solid var(--nl-border, #E2E8F0);
+  margin-top: 8px;
+  padding-top: 6px;
 }
 .nl-share-btn {
   background: none;
