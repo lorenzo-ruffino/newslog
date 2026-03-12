@@ -93,6 +93,7 @@
   let deepLinkActiveUntil = 0;
   let deepLinkRefreshTimer = null;
   let deepLinkLastOffset = null;
+  let lastShareBtn = null;
 
   // ─── Auto-resize (postMessage to parent) ──────────────────────────────────
   function notifyResize() {
@@ -530,7 +531,7 @@
 
     const shareBtn = el.querySelector('.nl-share-btn');
     if (shareBtn) {
-      shareBtn.addEventListener('click', () => shareEntry(entry.id));
+      shareBtn.addEventListener('click', () => shareEntry(entry.id, shareBtn));
     }
 
     // Lazy load embeds via Intersection Observer
@@ -658,7 +659,8 @@
     return base + '#nl-entry-' + entryId;
   }
 
-  function shareEntry(entryId) {
+  function shareEntry(entryId, btnEl) {
+    if (btnEl) lastShareBtn = btnEl;
     const shareUrl = getShareUrl(entryId);
     const inIframe = window.parent !== window;
 
@@ -716,11 +718,28 @@
     toast.classList.add('nl-show');
     clearTimeout(toast._timer);
     toast._timer = setTimeout(() => toast.classList.remove('nl-show'), 2000);
+    showInlineShareToast(msg);
+  }
+
+  function showInlineShareToast(msg) {
+    if (!lastShareBtn) return;
+    const parent = lastShareBtn.closest('.nl-entry-footer') || lastShareBtn.parentElement;
+    if (!parent) return;
+    let inline = parent.querySelector('.nl-share-inline');
+    if (!inline) {
+      inline = document.createElement('span');
+      inline.className = 'nl-share-inline';
+      parent.appendChild(inline);
+    }
+    inline.textContent = msg;
+    inline.classList.add('nl-show');
+    clearTimeout(inline._timer);
+    inline._timer = setTimeout(() => inline.classList.remove('nl-show'), 2000);
   }
 
   // Bind share buttons on server-rendered entries
   document.querySelectorAll('.nl-share-btn[data-entry-id]').forEach(btn => {
-    btn.addEventListener('click', () => shareEntry(btn.dataset.entryId));
+    btn.addEventListener('click', () => shareEntry(btn.dataset.entryId, btn));
   });
 
   // ─── Deep-link scroll ─────────────────────────────────────────────────────

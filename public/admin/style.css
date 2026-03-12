@@ -443,8 +443,13 @@ img { max-width: 100%; }
   flex-shrink: 0;
 }
 .right-panel-tabs {
-  display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0;
+  display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0; position: relative;
 }
+.right-panel-toggle {
+  position: absolute; right: 8px; top: 6px;
+  width: 28px; height: 28px; border-radius: 6px; color: var(--text2);
+}
+.right-panel-toggle:hover { background: var(--bg-hover); color: var(--text); }
 .tab-btn {
   flex: 1; padding: 11px 8px; font-size: 0.8rem; font-weight: 500; color: var(--text2);
   border-bottom: 2px solid transparent; transition: all 0.15s;
@@ -652,11 +657,7 @@ select.theme-select {
   #btn-theme-toggle { display: none; }
   #btn-export { display: none; }
   #btn-right-toggle { display: none; }
-  /* Mobile view switching */
-  .main-area[data-mobile-view="feed"] .composer { display: none; }
-  .main-area[data-mobile-view="feed"] #typing-indicators { display: none; }
-  .main-area[data-mobile-view="compose"] .feed-header { display: none; }
-  .main-area[data-mobile-view="compose"] #feed { display: none; }
+  /* Mobile view switching (feed always visible below composer) */
   /* Toolbar layout on mobile: stack vertically */
   .compose-toolbar { flex-direction: column; align-items: stretch; gap: 0; }
   .toolbar-left { flex-wrap: wrap; }

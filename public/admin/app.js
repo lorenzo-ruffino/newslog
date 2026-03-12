@@ -299,7 +299,7 @@ async function selectBlog(blog) {
 
   document.getElementById('empty-state')?.classList.add('hidden');
   document.getElementById('workspace')?.classList.remove('hidden');
-  // Default mobile view: compose
+  // Default mobile view: compose (kept for compatibility, feed remains visible)
   const mainArea = document.getElementById('main-area');
   if (mainArea && !mainArea.dataset.mobileView) mainArea.dataset.mobileView = 'compose';
   document.getElementById('topbar-blog-info').style.display = '';
@@ -1365,7 +1365,11 @@ function bindTopbarEvents() {
         document.getElementById('sidebar').classList.remove('open');
         document.getElementById('drawer-backdrop').classList.add('hidden');
         const mainArea = document.getElementById('main-area');
-        if (mainArea) mainArea.dataset.mobileView = view;
+        if (mainArea && view === 'compose') {
+          mainArea.dataset.mobileView = 'compose';
+        } else if (mainArea) {
+          mainArea.dataset.mobileView = view;
+        }
       }
     });
   });
