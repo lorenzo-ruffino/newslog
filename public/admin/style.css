@@ -701,9 +701,43 @@ select.theme-select {
   #btn-export { display: none; }
   #btn-right-toggle { display: none; }
   /* Mobile view switching (feed always visible below composer) */
+  .composer {
+    margin: 8px 8px 6px;
+    padding: 12px;
+    border-radius: 10px;
+  }
+  .entry-type-selector {
+    gap: 2px;
+    padding: 2px;
+    border-radius: 999px;
+  }
+  .type-btn {
+    padding: 4px 8px;
+    font-size: 0.7rem;
+  }
+  .compose-title {
+    padding: 8px 10px;
+    font-size: 0.95rem;
+  }
+  .compose-editor {
+    min-height: 72px;
+    max-height: 200px;
+    padding: 10px 12px;
+    font-size: 0.9rem;
+  }
   /* Toolbar layout on mobile: stack vertically */
   .compose-toolbar { flex-direction: column; align-items: stretch; gap: 0; }
-  .toolbar-left { flex-wrap: wrap; }
-  .toolbar-right { justify-content: space-between; padding-top: 8px; border-top: 1px solid var(--border); margin-top: 6px; }
+  .toolbar-left {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 4px;
+    padding-bottom: 6px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .toolbar-left::-webkit-scrollbar { display: none; }
+  .toolbar-right { justify-content: space-between; padding-top: 6px; border-top: 1px solid var(--border); margin-top: 6px; }
+  .tool-btn { width: 28px; height: 28px; }
+  .toolbar-sep { height: 14px; margin: 0 4px; }
   .btn-publish { flex: 1; }
 }
