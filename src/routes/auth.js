@@ -53,6 +53,10 @@ router.post('/request', magicLinkLimiter, async (req, res) => {
     // If SMTP is not configured, always return the debug link (useful during initial setup)
     const smtpConfigured = !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
     if (!smtpConfigured) {
+      const allowDebug = process.env.ALLOW_DEBUG_LOGIN === 'true';
+      if (!allowDebug) {
+        return res.status(500).json({ error: 'SMTP not configured' });
+      }
       const debugLink = `${baseUrl}/auth/verify/${token}`;
       console.log(`[SETUP] SMTP not configured. Magic link: ${debugLink}`);
       return res.json({ ok: true, debug_link: debugLink, smtp_warning: 'SMTP non configurato. Link di accesso restituito per il setup iniziale.' });

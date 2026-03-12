@@ -18,6 +18,18 @@ const ALLOWED_MIME = new Set([
   'audio/mpeg', 'audio/ogg', 'audio/wav',
 ]);
 
+const MIME_EXT = {
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/gif': '.gif',
+  'image/webp': '.webp',
+  'video/mp4': '.mp4',
+  'video/webm': '.webm',
+  'audio/mpeg': '.mp3',
+  'audio/ogg': '.ogg',
+  'audio/wav': '.wav',
+};
+
 const storage = multer.memoryStorage();
 const upload = multer({
   storage,
@@ -35,7 +47,8 @@ router.post('/blogs/:slug/upload', requireAuth, requireBlogAccess, upload.single
   const blog = getDb().prepare('SELECT * FROM blogs WHERE slug = ?').get(req.params.slug);
   if (!blog) return res.status(404).json({ error: 'Blog not found' });
 
-  const ext = path.extname(req.file.originalname).toLowerCase() || `.${req.file.mimetype.split('/')[1]}`;
+  const ext = MIME_EXT[req.file.mimetype];
+  if (!ext) return res.status(400).json({ error: 'Unsupported file type' });
   const filename = `${uuidv4()}${ext}`;
   const blogUploadsDir = path.join(UPLOADS_BASE, req.params.slug);
 

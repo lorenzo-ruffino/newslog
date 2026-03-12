@@ -6,7 +6,17 @@ const { v4: uuidv4 } = require('uuid');
 const nodemailer = require('nodemailer');
 const { getDb } = require('./db');
 
-const SECRET_KEY = process.env.SECRET_KEY || 'dev-secret-change-in-production';
+const DEFAULT_SECRET = 'dev-secret-change-in-production';
+const SECRET_KEY = process.env.SECRET_KEY || DEFAULT_SECRET;
+const isProduction = process.env.NODE_ENV === 'production';
+if (!process.env.SECRET_KEY || SECRET_KEY === DEFAULT_SECRET) {
+  const msg = 'Missing or default SECRET_KEY. Set a strong SECRET_KEY in .env before starting the server.';
+  if (isProduction) {
+    throw new Error(msg);
+  } else {
+    console.warn(`[WARN] ${msg}`);
+  }
+}
 const JWT_EXPIRES_IN = '7d';
 const MAGIC_LINK_EXPIRES_MINUTES = 15;
 const INVITE_LINK_EXPIRES_MINUTES = 60;
