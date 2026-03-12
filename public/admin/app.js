@@ -16,7 +16,6 @@ const state = {
   editorSSE: null,
   feedSSE: null,
   onlineEditors: [],
-  soundEnabled: localStorage.getItem('nl-sound') !== 'off',
   timezone: 'Europe/Rome',
 };
 
@@ -202,11 +201,6 @@ function applyMobileThemeIcon() {
   if (moonM) moonM.classList.toggle('hidden', state.theme === 'light');
 }
 
-function applyMobileSoundIcon() {
-  document.getElementById('icon-sound-on-m')?.classList.toggle('hidden', !state.soundEnabled);
-  document.getElementById('icon-sound-off-m')?.classList.toggle('hidden', state.soundEnabled);
-}
-
 function openMobileSettings() {
   const sheet = document.getElementById('mobile-settings-sheet');
   if (!sheet) return;
@@ -223,7 +217,6 @@ function openMobileSettings() {
     }
   }
   applyMobileThemeIcon();
-  applyMobileSoundIcon();
   sheet.classList.add('open');
 }
 
@@ -725,8 +718,6 @@ async function publishEntry() {
       title,
     });
 
-    // Play sound immediately on publish
-    if (entry) playNewEntrySound(entry.entry_type || state.entryType);
     // Immediately insert into feed
     if (entry && entry.id) {
       // Remove existing element if SSE beat us to it
@@ -767,10 +758,6 @@ function connectPublicSSE(slug) {
 
   sse.addEventListener('new_entry', (e) => {
     const entry = JSON.parse(e.data);
-    // Play sound for entries from others (own entries play sound in publishEntry)
-    if (!document.getElementById(`entry-${entry.id}`)) {
-      playNewEntrySound(entry.entry_type);
-    }
     // Deduplicate: may have been inserted immediately by publishEntry()
     if (document.getElementById(`entry-${entry.id}`)) return;
     state.entries.unshift(entry);
@@ -1250,19 +1237,6 @@ function bindTopbarEvents() {
     }
   });
 
-  // Sound toggle
-  const applySoundUI = () => {
-    document.getElementById('icon-sound-on')?.classList.toggle('hidden', !state.soundEnabled);
-    document.getElementById('icon-sound-off')?.classList.toggle('hidden', state.soundEnabled);
-  };
-  applySoundUI();
-  document.getElementById('btn-sound-toggle')?.addEventListener('click', () => {
-    state.soundEnabled = !state.soundEnabled;
-    localStorage.setItem('nl-sound', state.soundEnabled ? 'on' : 'off');
-    applySoundUI();
-    if (state.soundEnabled) playNewEntrySound('update');
-  });
-
   document.getElementById('btn-right-toggle')?.addEventListener('click', () => {
     const layout = document.getElementById('layout');
     if (!layout) return;
@@ -1387,12 +1361,6 @@ function bindTopbarEvents() {
     localStorage.setItem('nl-theme', next);
     applyTheme(next);
     applyMobileThemeIcon();
-  });
-  document.getElementById('mobile-sound-toggle')?.addEventListener('click', () => {
-    state.soundEnabled = !state.soundEnabled;
-    localStorage.setItem('nl-sound', state.soundEnabled ? 'on' : 'off');
-    applyMobileSoundIcon();
-    if (state.soundEnabled) playNewEntrySound('update');
   });
   document.getElementById('mobile-btn-profile')?.addEventListener('click', () => { closeMobileSettings(); showProfileModal(); });
   document.getElementById('mobile-btn-theme')?.addEventListener('click', () => { closeMobileSettings(); showMobileThemeModal(); });
@@ -1949,90 +1917,6 @@ function insertAtCursor(textarea, text) {
 // ─── Locales served inline (fallback) ─────────────────────────────────────────
 // The admin app loads translations from the server, but we also need them for login
 // We serve translation files via static public/admin/locales/ (see below)
-
-// ─── Sound ────────────────────────────────────────────────────────────────────
-let audioCtx = null;
-
-// Create and unlock AudioContext on first user gesture (required after page refresh)
-function unlockAudioCtx() {
-  if (!audioCtx && state.soundEnabled) {
-    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (_) {}
-  }
-  if (audioCtx && audioCtx.state === 'suspended') {
-    audioCtx.resume().catch(() => {});
-  }
-}
-document.addEventListener('click', unlockAudioCtx, { passive: true });
-document.addEventListener('touchend', unlockAudioCtx, { passive: true });
-document.addEventListener('keydown', unlockAudioCtx, { passive: true });
-// Also try to unlock when returning to the page (covers mobile tab switching)
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') unlockAudioCtx();
-}, { passive: true });
-
-// Keep AudioContext alive — play silent buffer every 25s to prevent browser suspension
-setInterval(() => {
-  if (!audioCtx || !state.soundEnabled) return;
-  if (audioCtx.state === 'suspended') { audioCtx.resume().catch(() => {}); return; }
-  const buf = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
-  const src = audioCtx.createBufferSource();
-  src.buffer = buf;
-  src.connect(audioCtx.destination);
-  src.start();
-}, 25000);
-
-function playNewEntrySound(type = 'update') {
-  if (!state.soundEnabled) return;
-  try {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
-    const ctx = audioCtx;
-    const now = ctx.currentTime;
-    if (type === 'breaking') {
-      // Single triangle-wave beep, higher pitch than update
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.connect(g); g.connect(ctx.destination);
-      o.type = 'triangle';
-      o.frequency.value = 660;
-      g.gain.setValueAtTime(0.15, now);
-      g.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-      o.start(now);
-      o.stop(now + 0.25);
-    } else if (type === 'pinned') {
-      // Warm ascending chime: C5 → E5
-      const o1 = ctx.createOscillator();
-      const g1 = ctx.createGain();
-      o1.connect(g1); g1.connect(ctx.destination);
-      o1.type = 'sine';
-      o1.frequency.value = 523;
-      g1.gain.setValueAtTime(0.18, now);
-      g1.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
-      o1.start(now);
-      o1.stop(now + 0.28);
-      const o2 = ctx.createOscillator();
-      const g2 = ctx.createGain();
-      o2.connect(g2); g2.connect(ctx.destination);
-      o2.type = 'sine';
-      o2.frequency.value = 659;
-      g2.gain.setValueAtTime(0.15, now + 0.22);
-      g2.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-      o2.start(now + 0.22);
-      o2.stop(now + 0.5);
-    } else {
-      // Single soft sine ding
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.connect(g); g.connect(ctx.destination);
-      o.type = 'sine';
-      o.frequency.value = 440;
-      g.gain.setValueAtTime(0.12, now);
-      g.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
-      o.start(now);
-      o.stop(now + 0.22);
-    }
-  } catch (_) {}
-}
 
 // ─── Column Resizers ──────────────────────────────────────────────────────────
 function initResizers() {

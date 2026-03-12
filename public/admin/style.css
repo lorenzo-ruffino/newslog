@@ -739,7 +739,6 @@ select.theme-select {
   /* Hide desktop-only topbar elements */
   .locale-switch { display: none; }
   .user-menu-wrapper { display: none; }
-  #btn-sound-toggle { display: none; }
   #btn-theme-toggle { display: none; }
   #btn-export { display: none; }
   #btn-right-toggle { display: none; }
