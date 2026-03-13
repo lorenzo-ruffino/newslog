@@ -246,7 +246,7 @@ async function loadBlogs() {
   renderBlogsList();
   // Auto-select most recent blog on first load
   if (blogs.length && !state.activeBlog) {
-    selectBlog(blogs[0]);
+    selectBlog(selectDefaultBlog(blogs));
   }
 }
 
@@ -284,6 +284,17 @@ function sortBlogs(blogs) {
     if (ta === tb) return (b.id || 0) - (a.id || 0);
     return tb - ta;
   });
+}
+
+function selectDefaultBlog(blogs) {
+  const sorted = [...blogs].sort((a, b) => {
+    const ta = a.created_at ? Date.parse(a.created_at) : 0;
+    const tb = b.created_at ? Date.parse(b.created_at) : 0;
+    if (ta === tb) return (b.id || 0) - (a.id || 0);
+    return tb - ta;
+  });
+  const live = sorted.filter(b => b.status === 'live');
+  return live.length ? live[0] : sorted[0];
 }
 
 async function selectBlog(blog) {
