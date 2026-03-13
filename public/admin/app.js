@@ -417,6 +417,7 @@ async function handleEntryAction(entry, action) {
 }
 
 function showEditModal(entry) {
+  const initialHtml = entry.content || '';
   showModal({
     title: t('editor.edit_entry'),
     body: `
@@ -426,12 +427,15 @@ function showEditModal(entry) {
       </div>
       <div class="form-group">
         <label>${t('common.edit')}</label>
-        <textarea id="edit-content" style="min-height:120px;">${escHtml(entry.content.replace(/<[^>]+>/g, ''))}</textarea>
+        <div id="edit-content" class="edit-content" contenteditable="true"></div>
+        <div class="edit-hint">${t('editor.edit_hint') || 'Embeds and media are preserved automatically.'}</div>
       </div>`,
     actions: [
       { label: t('common.cancel'), cls: 'btn-secondary', action: closeModal },
       { label: t('common.save'), cls: 'btn-primary', action: async () => {
-        const content = document.getElementById('edit-content').value;
+        const editor = document.getElementById('edit-content');
+        const textOnly = editor?.innerText || '';
+        const content = sanitizeEditContent(textOnly, initialHtml);
         const title = document.getElementById('edit-title').value.trim() || null;
         await api('PATCH', `/api/blogs/${state.activeBlog.slug}/entries/${entry.id}`, { content, title });
         await loadEntries();
@@ -440,6 +444,8 @@ function showEditModal(entry) {
       }},
     ],
   });
+  const editEl = document.getElementById('edit-content');
+  if (editEl) editEl.innerText = stripHtmlPreservingBreaks(initialHtml);
 }
 
 function refreshFeedCount() {
@@ -470,6 +476,7 @@ function bindComposerEvents() {
     charCount.textContent = t('editor.char_count', { count: len });
     publishBtn.disabled = len === 0;
     detectEmbedUrls(editor.innerText);
+    normalizeEditorImages(editor);
     signalTyping();
   }
 
@@ -584,6 +591,7 @@ async function handleFileUpload(e) {
       : `<audio src="${data.url}" controls></audio>`;
     editor.focus();
     document.execCommand('insertHTML', false, tag);
+    normalizeEditorImages(editor);
     editor.dispatchEvent(new Event('input'));
     toast(t('common.copied') || 'Uploaded!', 'success');
   } catch (err) {
@@ -649,6 +657,42 @@ function embedIcon(type) {
   return icons[type] || '🔗';
 }
 
+function normalizeEditorImages(editor) {
+  if (!editor) return;
+  editor.querySelectorAll('img').forEach(img => {
+    img.removeAttribute('width');
+    img.removeAttribute('height');
+    img.style.width = '';
+    img.style.height = '';
+    if (!img.style.maxWidth) img.style.maxWidth = '100%';
+    img.style.display = 'block';
+  });
+}
+
+function stripHtmlPreservingBreaks(html) {
+  if (!html) return '';
+  let out = html.replace(/<(br|\/p|\/div)\s*\/?>/gi, '\n');
+  out = out.replace(/<\/(h2|h3)>/gi, '\n');
+  out = out.replace(/<[^>]+>/g, '');
+  out = out.replace(/\n{3,}/g, '\n\n');
+  return out.trim();
+}
+
+function sanitizeEditContent(text, originalHtml) {
+  const textOnly = (text || '').trim();
+  if (!textOnly) return '';
+  const escaped = escHtml(textOnly).replace(/\n/g, '<br>');
+  const preservedEmbeds = [];
+  if (originalHtml) {
+    const wrap = document.createElement('div');
+    wrap.innerHTML = originalHtml;
+    wrap.querySelectorAll('.nl-embed, img, video, audio, iframe, figure').forEach(node => {
+      preservedEmbeds.push(node.outerHTML);
+    });
+  }
+  return [escaped, ...preservedEmbeds].join('\n');
+}
+
 async function publishEntry() {
   const editor = document.getElementById('compose-editor');
   if (!editor || !state.activeBlog) return;
@@ -662,6 +706,7 @@ async function publishEntry() {
   // split URLs across multiple text nodes via autocorrect/composition spans), then
   // do a plain-text replacement on the resulting innerHTML.
   const clone = editor.cloneNode(true);
+  normalizeEditorImages(clone);
 
   // Unwrap all <span> elements that don't carry meaningful attributes, replacing them
   // with their text content so the URL lands in a single text node.

@@ -77,6 +77,7 @@
     "publish_btn": "Publish",
     "typing_indicator": "{{name}} is typing...",
     "edit_entry": "Edit update",
+    "edit_hint": "Embeds and media are preserved automatically.",
     "delete_entry_confirm": "Delete this update?",
     "pin_entry": "Pin to top",
     "unpin_entry": "Unpin",

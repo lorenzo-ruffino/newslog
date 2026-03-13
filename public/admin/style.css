@@ -457,6 +457,15 @@ img { max-width: 100%; }
 .entry-content ul { list-style: disc; padding-left: 20px; margin: 4px 0; }
 .entry-content ol { list-style: decimal; padding-left: 20px; margin: 4px 0; }
 .entry-content li { margin-bottom: 2px; }
+.edit-content {
+  width: 100%; min-height: 120px; padding: 9px 11px;
+  background: var(--bg-raised); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text); outline: none;
+  font-size: 0.9rem; line-height: 1.5;
+  white-space: pre-wrap;
+}
+.edit-content:focus { border-color: var(--accent); }
+.edit-hint { margin-top: 6px; font-size: 0.75rem; color: var(--text3); }
 
 .entry-actions {
   display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s;
