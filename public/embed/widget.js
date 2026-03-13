@@ -88,7 +88,7 @@
   let pendingNewEntries = 0;
   let parentPageUrl = null;
   const authorPosMap = new Map();
-  const DEEPLINK_STICKY_MS = 3000;
+  const DEEPLINK_STICKY_MS = 9000;
   let deepLinkTargetId = null;
   let deepLinkActiveUntil = 0;
   let deepLinkRefreshTimer = null;
@@ -550,6 +550,7 @@
 
     ensureExternalLinks(el);
     normalizeEntryImages(el);
+    bindMediaLoad(el);
 
     // Lazy load embeds via Intersection Observer
     if ('IntersectionObserver' in window) {
@@ -598,6 +599,15 @@
     });
   }
 
+  function bindMediaLoad(scope) {
+    (scope || document).querySelectorAll('.nl-entry-content img, .nl-entry-content iframe, .nl-entry-content video').forEach(media => {
+      if (media.dataset.nlLoadBound) return;
+      media.dataset.nlLoadBound = '1';
+      media.addEventListener('load', () => scheduleDeepLinkRefresh(120));
+      media.addEventListener('loadeddata', () => scheduleDeepLinkRefresh(120));
+    });
+  }
+
   // Force links to open in a new tab even inside iframes
   document.addEventListener('click', (e) => {
     const link = e.target.closest?.('.nl-entry-content a[href]');
@@ -612,6 +622,7 @@
   // Apply to initial SSR content
   ensureExternalLinks(document);
   normalizeEntryImages(document);
+  bindMediaLoad(document);
 
   function esc(str) {
     if (!str) return '';
@@ -860,6 +871,8 @@
     deepLinkActiveUntil = Date.now() + DEEPLINK_STICKY_MS;
     deepLinkLastOffset = null;
     scheduleDeepLinkRefresh(160);
+    scheduleDeepLinkRefresh(5000);
+    scheduleDeepLinkRefresh(8000);
   }
 
   function scheduleDeepLinkRefresh(delay) {
