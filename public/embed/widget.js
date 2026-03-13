@@ -548,11 +548,7 @@
       shareBtn.addEventListener('click', () => shareEntry(entry.id, shareBtn));
     }
 
-    // Ensure all links open in a new tab (embed should not navigate host page)
-    el.querySelectorAll('.nl-entry-content a[href]').forEach(a => {
-      a.setAttribute('target', '_blank');
-      a.setAttribute('rel', 'noopener');
-    });
+    ensureExternalLinks(el);
 
     // Lazy load embeds via Intersection Observer
     if ('IntersectionObserver' in window) {
@@ -582,6 +578,27 @@
       day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: timezone,
     });
   }
+
+  function ensureExternalLinks(scope) {
+    (scope || document).querySelectorAll('.nl-entry-content a[href]').forEach(a => {
+      a.setAttribute('target', '_blank');
+      a.setAttribute('rel', 'noopener noreferrer');
+    });
+  }
+
+  // Force links to open in a new tab even inside iframes
+  document.addEventListener('click', (e) => {
+    const link = e.target.closest?.('.nl-entry-content a[href]');
+    if (!link) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const href = link.getAttribute('href');
+    if (!href) return;
+    window.open(href, '_blank', 'noopener');
+  });
+
+  // Apply to initial SSR content
+  ensureExternalLinks(document);
 
   function esc(str) {
     if (!str) return '';
