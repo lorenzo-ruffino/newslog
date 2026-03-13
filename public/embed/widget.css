@@ -265,6 +265,8 @@ body[data-mode="dark"] .nl-widget {
   justify-content: flex-end;
   margin-top: 8px;
   padding-top: 4px;
+  position: relative;
+  min-height: 24px;
 }
 .nl-widget[data-style="timeline"] .nl-entry-footer {
   margin-top: 8px;
@@ -332,11 +334,16 @@ body[data-mode="dark"] .nl-widget {
   transform: translateX(-50%) translateY(0);
 }
 .nl-share-inline {
-  margin-left: 8px;
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 0;
   font-size: 0.72rem;
   color: var(--nl-text2, #64748B);
   opacity: 0;
   transition: opacity 0.2s;
+  pointer-events: none;
 }
 .nl-share-inline.nl-show { opacity: 1; }
 
