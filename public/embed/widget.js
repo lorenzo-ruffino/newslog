@@ -549,6 +549,7 @@
     }
 
     ensureExternalLinks(el);
+    normalizeEntryImages(el);
 
     // Lazy load embeds via Intersection Observer
     if ('IntersectionObserver' in window) {
@@ -586,6 +587,17 @@
     });
   }
 
+  function normalizeEntryImages(scope) {
+    (scope || document).querySelectorAll('.nl-entry-content img').forEach(img => {
+      img.removeAttribute('width');
+      img.removeAttribute('height');
+      img.style.width = '';
+      img.style.height = '';
+      if (!img.style.maxWidth) img.style.maxWidth = '100%';
+      img.style.display = 'block';
+    });
+  }
+
   // Force links to open in a new tab even inside iframes
   document.addEventListener('click', (e) => {
     const link = e.target.closest?.('.nl-entry-content a[href]');
@@ -599,6 +611,7 @@
 
   // Apply to initial SSR content
   ensureExternalLinks(document);
+  normalizeEntryImages(document);
 
   function esc(str) {
     if (!str) return '';

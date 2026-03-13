@@ -156,6 +156,8 @@ body { font-family: var(--nl-font, -apple-system, BlinkMacSystemFont, 'Segoe UI'
 .nl-entry-content { font-size: 0.9375rem; line-height: 1.65; color: var(--nl-text, #1E293B); overflow: hidden; word-break: break-word; }
 .nl-entry-content p { margin-bottom: 8px; }
 .nl-entry-content p:last-child { margin-bottom: 0; }
+.nl-entry-content div { margin-bottom: 0.7em; }
+.nl-entry-content div:last-child { margin-bottom: 0; }
 .nl-entry-content img { max-width: 100%; border-radius: 6px; margin-top: 8px; display: block; }
 .nl-entry-content iframe { max-width: 100%; border-radius: 6px; margin-top: 8px; display: block; }
 .nl-entry-content video, .nl-entry-content audio { max-width: 100%; margin-top: 8px; display: block; }
