@@ -529,8 +529,16 @@ function bindComposerEvents() {
   });
   document.getElementById('tool-ul')?.addEventListener('click', () => { editor.focus(); document.execCommand('insertUnorderedList'); });
   document.getElementById('tool-ol')?.addEventListener('click', () => { editor.focus(); document.execCommand('insertOrderedList'); });
-  document.getElementById('tool-h2')?.addEventListener('click', () => { editor.focus(); document.execCommand('formatBlock', false, 'h2'); });
-  document.getElementById('tool-h3')?.addEventListener('click', () => { editor.focus(); document.execCommand('formatBlock', false, 'h3'); });
+  document.getElementById('tool-h2')?.addEventListener('click', () => {
+    editor.focus();
+    const isH2 = document.queryCommandValue('formatBlock') === 'h2';
+    document.execCommand('formatBlock', false, isH2 ? 'p' : 'h2');
+  });
+  document.getElementById('tool-h3')?.addEventListener('click', () => {
+    editor.focus();
+    const isH3 = document.queryCommandValue('formatBlock') === 'h3';
+    document.execCommand('formatBlock', false, isH3 ? 'p' : 'h3');
+  });
 
   // File uploads
   document.getElementById('tool-image')?.addEventListener('click', () => triggerFileUpload('image/*'));
