@@ -12,6 +12,8 @@ const state = {
   members: [],
   entryType: 'update',
   pendingEmbeds: [],
+  editPendingEmbeds: [],
+  uploadTargetEditor: null,
   typingTimers: {},
   editorSSE: null,
   feedSSE: null,
@@ -368,6 +370,7 @@ function createEntryElement(entry) {
   el.className = `feed-entry${entry.entry_type !== 'update' ? ' ' + entry.entry_type : ''}${entry.is_pinned ? ' is-pinned' : ''}`;
   el.id = `entry-${entry.id}`;
   el.dataset.id = entry.id;
+  if (entry.created_at) el.dataset.createdAt = entry.created_at;
 
   const authorName = entry.author?.name || 'Unknown';
   const authorAvatar = entry.author?.avatar_url;
@@ -438,15 +441,31 @@ function showEditModal(entry) {
       </div>
       <div class="form-group">
         <label>${t('common.edit')}</label>
-        <div id="edit-content" class="edit-content" contenteditable="true"></div>
-        <div class="edit-hint">${t('editor.edit_hint') || 'Embeds and media are preserved automatically.'}</div>
+        ${buildEditToolbarHtml()}
+        <div id="edit-content" class="compose-editor edit-content" contenteditable="true"></div>
+        <div id="edit-embed-previews" class="embed-previews"></div>
+        <div id="edit-embed-url-field" class="embed-url-field hidden">
+          <input type="url" id="edit-embed-url-input" placeholder="${t('editor.embed_url_placeholder') || 'Incolla un URL per incorporarlo...'}">
+          <button id="edit-btn-embed-resolve">OK</button>
+        </div>
+        <div class="edit-hint">${t('editor.edit_hint') || 'La formattazione esistente viene mantenuta.'}</div>
       </div>`,
     actions: [
       { label: t('common.cancel'), cls: 'btn-secondary', action: closeModal },
       { label: t('common.save'), cls: 'btn-primary', action: async () => {
         const editor = document.getElementById('edit-content');
         const textOnly = editor?.innerText || '';
-        const content = sanitizeEditContent(textOnly, initialHtml);
+        if (!textOnly.trim()) {
+          toast(t('editor.empty') || 'Il contenuto è vuoto', 'error');
+          return;
+        }
+        const clone = editor.cloneNode(true);
+        normalizeEditorImages(clone);
+        let content = (clone.innerHTML || '').trim();
+        if (state.editPendingEmbeds.length) {
+          const embedsHtml = state.editPendingEmbeds.map(e => e.html).filter(Boolean).join('\n');
+          content = [content, embedsHtml].filter(Boolean).join('\n');
+        }
         const title = document.getElementById('edit-title').value.trim() || null;
         await api('PATCH', `/api/blogs/${state.activeBlog.slug}/entries/${entry.id}`, { content, title });
         await loadEntries();
@@ -456,7 +475,13 @@ function showEditModal(entry) {
     ],
   });
   const editEl = document.getElementById('edit-content');
-  if (editEl) editEl.innerText = stripHtmlPreservingBreaks(initialHtml);
+  if (editEl) {
+    state.editPendingEmbeds = [];
+    renderEditEmbedPreviews();
+    editEl.innerHTML = initialHtml;
+    normalizeEditorImages(editEl);
+    bindEditComposerEvents(editEl);
+  }
 }
 
 function refreshFeedCount() {
@@ -471,6 +496,30 @@ function getNewEntryInsertPoint(feed, newEntryIsPinned) {
   const pinnedEntries = feed.querySelectorAll('.feed-entry.is-pinned');
   if (pinnedEntries.length) return pinnedEntries[pinnedEntries.length - 1].nextSibling;
   return feed.firstChild;
+}
+
+// Insert entry element respecting pinned priority and chronological order
+function insertEntryInFeed(feed, entry, el) {
+  if (!feed || !el) return;
+  if (entry.is_pinned) {
+    feed.insertBefore(el, feed.firstChild);
+    return;
+  }
+  const entryTime = entry.created_at || '';
+  if (!entryTime) {
+    feed.insertBefore(el, getNewEntryInsertPoint(feed, false));
+    return;
+  }
+  const siblings = Array.from(feed.querySelectorAll('.feed-entry'));
+  for (const sib of siblings) {
+    if (sib.classList.contains('is-pinned')) continue;
+    const sibTime = sib.dataset.createdAt || '';
+    if (sibTime && sibTime < entryTime) {
+      feed.insertBefore(el, sib);
+      return;
+    }
+  }
+  feed.appendChild(el);
 }
 
 // ─── Composer ─────────────────────────────────────────────────────────────────
@@ -580,8 +629,9 @@ function updateTypeButtons() {
   });
 }
 
-function triggerFileUpload(accept) {
+function triggerFileUpload(accept, targetEditor) {
   const input = document.getElementById('file-input');
+  state.uploadTargetEditor = targetEditor || document.getElementById('compose-editor');
   input.accept = accept;
   input.click();
 }
@@ -602,7 +652,8 @@ async function handleFileUpload(e) {
     const data = await resp.json();
     if (!resp.ok) throw new Error(data.error);
 
-    const editor = document.getElementById('compose-editor');
+    const editor = state.uploadTargetEditor || document.getElementById('compose-editor');
+    if (!editor) throw new Error('Editor not found');
     const tag = file.type.startsWith('image/')
       ? `<img src="${data.url}" alt="" loading="lazy">`
       : file.type.startsWith('video/')
@@ -617,6 +668,7 @@ async function handleFileUpload(e) {
     toast(err.message, 'error');
   }
   e.target.value = '';
+  state.uploadTargetEditor = null;
 }
 
 const embedDetectionTimer = {};
@@ -646,11 +698,10 @@ async function resolveAndPreviewEmbed(url, fromDetect = false) {
   } catch (_) {}
 }
 
-function renderEmbedPreviews() {
-  const container = document.getElementById('embed-previews');
+function renderEmbedPreviewsIn(container, list, onRemove) {
   if (!container) return;
   container.innerHTML = '';
-  state.pendingEmbeds.forEach((embed, idx) => {
+  list.forEach((embed, idx) => {
     const div = document.createElement('div');
     div.className = 'embed-preview-item';
     div.innerHTML = `
@@ -663,11 +714,24 @@ function renderEmbedPreviews() {
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     `;
-    div.querySelector('.embed-preview-remove').addEventListener('click', () => {
-      state.pendingEmbeds.splice(idx, 1);
-      renderEmbedPreviews();
-    });
+    div.querySelector('.embed-preview-remove').addEventListener('click', () => onRemove(idx));
     container.appendChild(div);
+  });
+}
+
+function renderEmbedPreviews() {
+  const container = document.getElementById('embed-previews');
+  renderEmbedPreviewsIn(container, state.pendingEmbeds, (idx) => {
+    state.pendingEmbeds.splice(idx, 1);
+    renderEmbedPreviews();
+  });
+}
+
+function renderEditEmbedPreviews() {
+  const container = document.getElementById('edit-embed-previews');
+  renderEmbedPreviewsIn(container, state.editPendingEmbeds, (idx) => {
+    state.editPendingEmbeds.splice(idx, 1);
+    renderEditEmbedPreviews();
   });
 }
 
@@ -688,10 +752,118 @@ function normalizeEditorImages(editor) {
   });
 }
 
+function buildEditToolbarHtml() {
+  return `
+    <div class="compose-toolbar edit-toolbar">
+      <div class="toolbar-left">
+        <button class="tool-btn" data-edit-cmd="bold" title="Grassetto (Ctrl+B)"><b>B</b></button>
+        <button class="tool-btn" data-edit-cmd="italic" title="Corsivo (Ctrl+I)"><i>I</i></button>
+        <button class="tool-btn" data-edit-cmd="createLink" title="Inserisci link (Ctrl+K)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        </button>
+        <div class="toolbar-sep"></div>
+        <button class="tool-btn" data-edit-upload="image" title="Carica immagine">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        </button>
+        <button class="tool-btn" data-edit-upload="video" title="Carica video">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+        </button>
+        <button class="tool-btn" data-edit-upload="audio" title="Carica audio">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        </button>
+        <div class="toolbar-sep"></div>
+        <button class="tool-btn" data-edit-cmd="insertUnorderedList" title="Elenco puntato">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/><circle cx="4" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="4" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="4" cy="18" r="1" fill="currentColor" stroke="none"/></svg>
+        </button>
+        <button class="tool-btn" data-edit-cmd="insertOrderedList" title="Elenco numerato">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><path d="M4 6h1v4" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M4 10h2" stroke="currentColor" stroke-width="1.5"/><path d="M6 14H4l2 2-2 2h2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        </button>
+        <div class="toolbar-sep"></div>
+        <button class="tool-btn" data-edit-cmd="formatBlock" data-edit-arg="h2" title="Titolo H2" style="font-size:0.7rem;font-weight:700;">H2</button>
+        <button class="tool-btn" data-edit-cmd="formatBlock" data-edit-arg="h3" title="Titolo H3" style="font-size:0.7rem;font-weight:700;">H3</button>
+        <div class="toolbar-sep"></div>
+        <button class="tool-btn" data-edit-embed title="Embed URL">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function bindEditComposerEvents(editor) {
+  if (!editor) return;
+  const toolbar = editor.parentElement?.querySelector('.edit-toolbar');
+  if (!toolbar) return;
+  toolbar.querySelectorAll('[data-edit-cmd]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cmd = btn.dataset.editCmd;
+      const arg = btn.dataset.editArg;
+      editor.focus();
+      if (cmd === 'createLink') {
+        const url = prompt('URL:');
+        if (url) document.execCommand('createLink', false, url);
+        return;
+      }
+      if (cmd === 'formatBlock') {
+        const current = document.queryCommandValue('formatBlock');
+        if (arg && current === arg) {
+          document.execCommand('formatBlock', false, 'p');
+        } else {
+          document.execCommand('formatBlock', false, arg || 'p');
+        }
+        return;
+      }
+      document.execCommand(cmd, false, null);
+    });
+  });
+
+  toolbar.querySelectorAll('[data-edit-upload]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const type = btn.dataset.editUpload;
+      const accept = type === 'image' ? 'image/*' : type === 'video' ? 'video/*' : 'audio/*';
+      triggerFileUpload(accept, editor);
+    });
+  });
+
+  const embedBtn = toolbar.querySelector('[data-edit-embed]');
+  const embedField = editor.parentElement?.querySelector('#edit-embed-url-field');
+  const embedInput = editor.parentElement?.querySelector('#edit-embed-url-input');
+  const embedResolve = editor.parentElement?.querySelector('#edit-btn-embed-resolve');
+
+  if (embedBtn && embedField) {
+    embedBtn.addEventListener('click', () => {
+      embedField.classList.toggle('hidden');
+      if (!embedField.classList.contains('hidden')) embedInput?.focus();
+    });
+  }
+
+  if (embedResolve && embedInput) {
+    embedResolve.addEventListener('click', async () => {
+      const url = embedInput.value.trim();
+      if (!url) return;
+      try {
+        const data = await api('POST', '/api/embed/resolve', { url });
+        if (data?.html) {
+          state.editPendingEmbeds.push({ url, ...data });
+          renderEditEmbedPreviews();
+          embedInput.value = '';
+          embedField?.classList.add('hidden');
+        }
+      } catch (err) {
+        toast(err.message, 'error');
+      }
+    });
+  }
+}
+
 function stripHtmlPreservingBreaks(html) {
   if (!html) return '';
-  let out = html.replace(/<(br|\/p|\/div)\s*\/?>/gi, '\n');
+  let out = html
+    .replace(/<li\s*>/gi, '• ')
+    .replace(/<\/li\s*>/gi, '\n')
+    .replace(/<(br|\/p|\/div)\s*\/?>/gi, '\n');
   out = out.replace(/<\/(h2|h3)>/gi, '\n');
+  out = out.replace(/<\/?(ul|ol)\s*>/gi, '\n');
   out = out.replace(/<[^>]+>/g, '');
   out = out.replace(/\n{3,}/g, '\n\n');
   return out.trim();
@@ -794,7 +966,7 @@ async function publishEntry() {
         const empty = feed.querySelector('[style*="text-align:center"]');
         if (empty) empty.remove();
         const el = createEntryElement(entry);
-        feed.insertBefore(el, getNewEntryInsertPoint(feed, entry.is_pinned));
+        insertEntryInFeed(feed, entry, el);
       }
       refreshFeedCount();
     }
@@ -831,7 +1003,7 @@ function connectPublicSSE(slug) {
       // Remove empty state
       const empty = feed.querySelector('[style*="text-align:center"]');
       if (empty) empty.remove();
-      feed.insertBefore(el, getNewEntryInsertPoint(feed, entry.is_pinned));
+      insertEntryInFeed(feed, entry, el);
     }
     refreshFeedCount();
     updatePreviewIframe();
@@ -849,7 +1021,7 @@ function connectPublicSSE(slug) {
       if (wasPinned !== entry.is_pinned) {
         el.remove();
         const feed = document.getElementById('feed');
-        if (feed) feed.insertBefore(newEl, getNewEntryInsertPoint(feed, entry.is_pinned));
+        if (feed) insertEntryInFeed(feed, entry, newEl);
       } else {
         el.replaceWith(newEl);
       }
