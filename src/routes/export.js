@@ -4,7 +4,7 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs');
 const path = require('path');
-const { getDb } = require('../db');
+const { getDb, normalizePinned } = require('../db');
 const { requireAuth, requireBlogAccess } = require('../auth');
 
 const UPLOADS_DIR = path.join(__dirname, '..', '..', 'data', 'uploads');
@@ -41,6 +41,7 @@ router.get('/blogs/:slug/export', requireAuth, requireBlogAccess, async (req, re
   const db = getDb();
   const blog = db.prepare('SELECT * FROM blogs WHERE slug = ?').get(req.params.slug);
   if (!blog) return res.status(404).json({ error: 'Blog not found' });
+  normalizePinned(db, blog.id);
 
   const format = req.query.format;
 

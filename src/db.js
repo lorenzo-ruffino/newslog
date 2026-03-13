@@ -123,4 +123,23 @@ function closeDb() {
   }
 }
 
-module.exports = { getDb, closeDb };
+// Ensure only one pinned entry exists per blog; keep most recently updated.
+function normalizePinned(db, blogId) {
+  const pinned = db.prepare(`
+    SELECT id FROM entries
+    WHERE blog_id = ? AND is_pinned = 1
+    ORDER BY updated_at DESC, created_at DESC
+  `).all(blogId);
+  if (pinned.length <= 1) return pinned[0]?.id || null;
+  const keepId = pinned[0].id;
+  db.prepare(`
+    UPDATE entries
+    SET is_pinned = 0,
+        entry_type = CASE WHEN entry_type = 'pinned' THEN 'update' ELSE entry_type END,
+        updated_at = datetime('now')
+    WHERE blog_id = ? AND is_pinned = 1 AND id != ?
+  `).run(blogId, keepId);
+  return keepId;
+}
+
+module.exports = { getDb, closeDb, normalizePinned };

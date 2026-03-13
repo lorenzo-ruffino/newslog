@@ -5,7 +5,7 @@ const { v4: uuidv4 } = require('uuid');
 const sanitizeHtml = require('sanitize-html');
 const router = express.Router();
 
-const { getDb } = require('../db');
+const { getDb, normalizePinned } = require('../db');
 const { requireAuth, requireAdmin, requireBlogAccess, getOrCreateUser, generateMagicLinkToken, sendMagicLink, INVITE_LINK_EXPIRES_MINUTES } = require('../auth');
 const { broadcastToPublic, broadcastToEditors, addPublicClient, addEditorClient, getOnlineEditors } = require('../sse');
 const { slugify } = require('../utils');
@@ -139,6 +139,7 @@ router.get('/blogs/:slug/entries', (req, res) => {
   if (!blog) return res.status(404).json({ error: 'Blog not found' });
 
   const db = getDb();
+  normalizePinned(db, blog.id);
   const page = Math.max(1, parseInt(req.query.page || '1'));
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit || '20')));
   const offset = (page - 1) * limit;
@@ -180,22 +181,27 @@ router.post('/blogs/:slug/entries', requireAuth, requireBlogAccess, (req, res) =
   const sanitized = sanitize(content);
   const isPinned = entry_type === 'pinned' ? 1 : 0;
 
-  // If new entry is pinned, unpin all previously pinned entries for this blog
-  if (isPinned) {
-    const prevPinned = db.prepare('SELECT id FROM entries WHERE blog_id = ? AND is_pinned = 1').all(blog.id);
-    if (prevPinned.length) {
-      db.prepare('UPDATE entries SET is_pinned = 0, entry_type = \'update\', updated_at = datetime(\'now\') WHERE blog_id = ? AND is_pinned = 1').run(blog.id);
-      prevPinned.forEach(p => {
-        const updated = formatEntry(db.prepare('SELECT * FROM entries WHERE id = ?').get(p.id), db);
-        broadcastToPublic(blog.slug, 'update_entry', updated, p.id);
-      });
+  let prevPinned = [];
+  const tx = db.transaction(() => {
+    if (isPinned) {
+      prevPinned = db.prepare('SELECT id FROM entries WHERE blog_id = ? AND is_pinned = 1').all(blog.id);
+      if (prevPinned.length) {
+        db.prepare('UPDATE entries SET is_pinned = 0, entry_type = \'update\', updated_at = datetime(\'now\') WHERE blog_id = ? AND is_pinned = 1').run(blog.id);
+      }
     }
-  }
+    db.prepare(`
+      INSERT INTO entries (id, blog_id, author_id, content, entry_type, is_pinned, title)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(id, blog.id, req.user.id, sanitized, entry_type, isPinned, safeTitle);
+  });
+  tx();
 
-  db.prepare(`
-    INSERT INTO entries (id, blog_id, author_id, content, entry_type, is_pinned, title)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(id, blog.id, req.user.id, sanitized, entry_type, isPinned, safeTitle);
+  if (prevPinned.length) {
+    prevPinned.forEach(p => {
+      const updated = formatEntry(db.prepare('SELECT * FROM entries WHERE id = ?').get(p.id), db);
+      broadcastToPublic(blog.slug, 'update_entry', updated, p.id);
+    });
+  }
 
   const entry = formatEntry(db.prepare('SELECT * FROM entries WHERE id = ?').get(id), db);
   entryCache.delete(blog.slug);
@@ -287,19 +293,24 @@ router.post('/blogs/:slug/entries/:id/pin', requireAuth, requireBlogAccess, (req
   // When unpinning a 'pinned'-type entry, revert it to 'update'
   const newType = (newPinned === 0 && entry.entry_type === 'pinned') ? 'update' : entry.entry_type;
 
-  // If pinning, first unpin all other pinned entries for this blog
-  if (newPinned === 1) {
-    const prevPinned = db.prepare('SELECT id FROM entries WHERE blog_id = ? AND is_pinned = 1 AND id != ?').all(blog.id, entry.id);
-    if (prevPinned.length) {
-      db.prepare('UPDATE entries SET is_pinned = 0, entry_type = \'update\', updated_at = datetime(\'now\') WHERE blog_id = ? AND is_pinned = 1 AND id != ?').run(blog.id, entry.id);
-      prevPinned.forEach(p => {
-        const updated = formatEntry(db.prepare('SELECT * FROM entries WHERE id = ?').get(p.id), db);
-        broadcastToPublic(blog.slug, 'update_entry', updated, p.id);
-      });
+  let prevPinned = [];
+  const txPin = db.transaction(() => {
+    if (newPinned === 1) {
+      prevPinned = db.prepare('SELECT id FROM entries WHERE blog_id = ? AND is_pinned = 1 AND id != ?').all(blog.id, entry.id);
+      if (prevPinned.length) {
+        db.prepare('UPDATE entries SET is_pinned = 0, entry_type = \'update\', updated_at = datetime(\'now\') WHERE blog_id = ? AND is_pinned = 1 AND id != ?').run(blog.id, entry.id);
+      }
     }
-  }
+    db.prepare('UPDATE entries SET is_pinned = ?, entry_type = ?, updated_at = datetime(\'now\') WHERE id = ?').run(newPinned, newType, entry.id);
+  });
+  txPin();
 
-  db.prepare('UPDATE entries SET is_pinned = ?, entry_type = ?, updated_at = datetime(\'now\') WHERE id = ?').run(newPinned, newType, entry.id);
+  if (prevPinned.length) {
+    prevPinned.forEach(p => {
+      const updated = formatEntry(db.prepare('SELECT * FROM entries WHERE id = ?').get(p.id), db);
+      broadcastToPublic(blog.slug, 'update_entry', updated, p.id);
+    });
+  }
 
   const updated = formatEntry(db.prepare('SELECT * FROM entries WHERE id = ?').get(entry.id), db);
   entryCache.delete(blog.slug);

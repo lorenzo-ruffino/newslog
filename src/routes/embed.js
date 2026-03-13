@@ -4,7 +4,7 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const fs = require('fs');
-const { getDb } = require('../db');
+const { getDb, normalizePinned } = require('../db');
 
 // Cache-busting version based on widget.js mtime — computed once at startup
 let _widgetVersion = Date.now();
@@ -30,6 +30,7 @@ router.get('/:idOrSlug', (req, res) => {
 
   const pageSize = parseInt(process.env.EMBED_PAGE_SIZE) || 50;
   const totalEntries = db.prepare('SELECT COUNT(*) as cnt FROM entries WHERE blog_id = ?').get(blog.id).cnt;
+  normalizePinned(db, blog.id);
 
   const entries = db.prepare(`
     SELECT e.*, u.name as author_name, u.avatar_url as author_avatar
