@@ -169,13 +169,38 @@ async function resolveDirectMedia(url) {
   return null;
 }
 
+function buildLinkCard({ url, title, description, image, siteName }) {
+  const safeTitle = title || url;
+  const safeSite = siteName || new URL(url).hostname;
+  const cardHtml = `<div class="nl-embed nl-embed-link">
+    ${image ? `<img src="${image}" alt="" loading="lazy" style="max-width:100%;border-radius:4px 4px 0 0;">` : ''}
+    <div class="nl-embed-link-body">
+      <strong>${safeTitle}</strong>
+      ${description ? `<p>${description.slice(0, 150)}</p>` : ''}
+      <a href="${url}" target="_blank" rel="noopener">${safeSite}</a>
+    </div>
+  </div>`;
+
+  return {
+    type: 'link',
+    url,
+    title: safeTitle,
+    thumbnail: image || null,
+    html: cardHtml,
+    provider: safeSite,
+    provider_icon: 'link',
+  };
+}
+
 async function resolveOpenGraph(url) {
   try {
     const resp = await fetch(url, {
       signal: AbortSignal.timeout(5000),
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; NewsLog/1.0)' },
     });
-    if (!resp.ok) return null;
+    if (!resp.ok) {
+      return buildLinkCard({ url, title: url, description: '', image: null, siteName: new URL(url).hostname });
+    }
     const html = await resp.text();
 
     const getOgMeta = (property) => {
@@ -189,26 +214,13 @@ async function resolveOpenGraph(url) {
     const image = getOgMeta('og:image') || getOgMeta('twitter:image') || null;
     const siteName = getOgMeta('og:site_name') || new URL(url).hostname;
 
-    const cardHtml = `<div class="nl-embed nl-embed-link">
-      ${image ? `<img src="${image}" alt="" loading="lazy" style="max-width:100%;border-radius:4px 4px 0 0;">` : ''}
-      <div class="nl-embed-link-body">
-        <strong>${title}</strong>
-        ${description ? `<p>${description.slice(0, 150)}</p>` : ''}
-        <a href="${url}" target="_blank" rel="noopener">${siteName}</a>
-      </div>
-    </div>`;
-
-    return {
-      type: 'link',
-      url,
-      title,
-      thumbnail: image,
-      html: cardHtml,
-      provider: siteName,
-      provider_icon: 'link',
-    };
+    return buildLinkCard({ url, title, description, image, siteName });
   } catch (_) {
-    return null;
+    try {
+      return buildLinkCard({ url, title: url, description: '', image: null, siteName: new URL(url).hostname });
+    } catch {
+      return null;
+    }
   }
 }
 

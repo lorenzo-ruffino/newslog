@@ -23,7 +23,7 @@ const state = {
 let i18n = {};
 
 async function loadTranslations(locale) {
-  const resp = await fetch(`/locales/${locale}.json`).catch(() => null);
+  const resp = await fetch(`/locales/${locale}.json?v=${Date.now()}`).catch(() => null);
   if (resp?.ok) {
     i18n = await resp.json();
   } else {
