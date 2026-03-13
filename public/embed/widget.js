@@ -548,6 +548,12 @@
       shareBtn.addEventListener('click', () => shareEntry(entry.id, shareBtn));
     }
 
+    // Ensure all links open in a new tab (embed should not navigate host page)
+    el.querySelectorAll('.nl-entry-content a[href]').forEach(a => {
+      a.setAttribute('target', '_blank');
+      a.setAttribute('rel', 'noopener');
+    });
+
     // Lazy load embeds via Intersection Observer
     if ('IntersectionObserver' in window) {
       const observer = new IntersectionObserver((entries) => {
