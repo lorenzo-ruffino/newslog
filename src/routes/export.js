@@ -51,6 +51,27 @@ function absolutizeContentImages(html, baseUrl) {
   });
 }
 
+function uploadPathFromUrl(url) {
+  if (!url) return null;
+  const match = url.match(/\/uploads\/(.+?)(\?.*)?$/);
+  return match ? match[1] : null;
+}
+
+function proxyUploadUrl(url, baseUrl) {
+  if (!url || !baseUrl) return url;
+  const uploadPath = uploadPathFromUrl(url);
+  if (!uploadPath) return url;
+  return `${baseUrl.replace(/\/$/, '')}/api/export/uploads/${uploadPath}`;
+}
+
+function proxyContentImages(html, baseUrl) {
+  if (!baseUrl) return html;
+  return html.replace(/src="([^"]*\/uploads\/[^"]+)"/g, (match, url) => {
+    const proxied = proxyUploadUrl(url, baseUrl);
+    return proxied ? `src="${proxied}"` : match;
+  });
+}
+
 // GET /api/blogs/:slug/export
 router.get('/blogs/:slug/export', requireAuth, requireBlogAccess, async (req, res) => {
   const db = getDb();
@@ -86,6 +107,16 @@ router.get('/blogs/:slug/export', requireAuth, requireBlogAccess, async (req, re
   res.set('Content-Type', 'text/html; charset=utf-8');
   res.set('Content-Disposition', `attachment; filename="${blog.slug}-export.html"`);
   res.send(html);
+});
+
+// Serve uploads via a public export endpoint to avoid hotlink protection
+router.get('/export/uploads/*', (req, res) => {
+  const rawPath = req.params[0] || '';
+  const safePath = path.normalize(rawPath).replace(/^(\.\.(\/|\\|$))+/, '');
+  const filePath = path.join(UPLOADS_DIR, safePath);
+  if (!filePath.startsWith(UPLOADS_DIR)) return res.status(400).end();
+  if (!fs.existsSync(filePath)) return res.status(404).end();
+  return res.sendFile(filePath);
 });
 
 async function generateStaticHtml(blog, opts, db) {
@@ -161,7 +192,7 @@ function renderExportEntry(entry, opts, labels, locale, timezone, baseUrl = '', 
       ? (() => {
           const src = inlineImages
             ? (inlineUrl(entry.author_avatar) || entry.author_avatar)
-            : resolveUploadUrl(entry.author_avatar, baseUrl);
+            : proxyUploadUrl(entry.author_avatar, baseUrl);
           return `<img src="${escapeHtml(src)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" alt="">`;
         })()
       : `<div style="width:28px;height:28px;border-radius:50%;background:#2563EB;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">${initials}</div>`}
@@ -170,7 +201,7 @@ function renderExportEntry(entry, opts, labels, locale, timezone, baseUrl = '', 
     <time style="font-size:12px;color:#94A3B8;margin-left:auto;" datetime="${entry.created_at}">${timeStr}</time>
   </div>
   ${entry.title ? `<div style="font-size:18px;font-weight:700;margin-bottom:4px;line-height:1.35;">${escapeHtml(entry.title)}</div>` : ''}
-  <div style="font-size:16px;line-height:1.7;">${inlineImages ? inlineContentImages(entry.content) : absolutizeContentImages(entry.content, baseUrl)}</div>
+  <div style="font-size:16px;line-height:1.7;">${inlineImages ? inlineContentImages(entry.content) : proxyContentImages(entry.content, baseUrl)}</div>
 </div>`;
 }
 
