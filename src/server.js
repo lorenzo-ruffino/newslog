@@ -23,8 +23,18 @@ const UPLOADS_DIR = path.join(__dirname, '..', 'data', 'uploads');
 fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
 app.use('/uploads', (req, res, next) => {
+  const allowedOrigins = process.env.UPLOADS_CORS_ORIGINS
+    ? process.env.UPLOADS_CORS_ORIGINS.split(',').map(s => s.trim())
+    : null;
+  const origin = req.headers.origin;
+  if (allowedOrigins) {
+    if (origin && allowedOrigins.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-  res.setHeader('Access-Control-Allow-Origin', '*');
   next();
 }, express.static(UPLOADS_DIR));
 
