@@ -115,8 +115,10 @@ router.get('/export/uploads/*', (req, res) => {
   const safePath = path.normalize(rawPath).replace(/^(\.\.(\/|\\|$))+/, '');
   const filePath = path.join(UPLOADS_DIR, safePath);
   if (!filePath.startsWith(UPLOADS_DIR)) return res.status(400).end();
-  if (!fs.existsSync(filePath)) return res.status(404).end();
-  return res.sendFile(filePath);
+  if (fs.existsSync(filePath)) return res.sendFile(filePath);
+  const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+  const redirectUrl = `${baseUrl.replace(/\/$/, '')}/uploads/${safePath}`;
+  return res.redirect(302, redirectUrl);
 });
 
 async function generateStaticHtml(blog, opts, db) {
