@@ -100,7 +100,7 @@ async function generateStaticHtml(blog, opts, db) {
     ORDER BY e.is_pinned DESC, e.created_at DESC
   `).all(blog.id);
 
-  const baseUrl = process.env.BASE_URL || '';
+  const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
   const authors = [...new Set(entries.map(e => e.author_name))];
   const lastEntry = entries.find(e => !e.is_pinned);
   const dateStr = lastEntry ? formatDate(lastEntry.created_at, locale, timezone) : formatDate(blog.created_at, locale, timezone);
