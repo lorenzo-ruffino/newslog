@@ -9,33 +9,6 @@ const { requireAuth, requireBlogAccess } = require('../auth');
 
 const UPLOADS_DIR = path.join(__dirname, '..', '..', 'data', 'uploads');
 
-// Convert a server-hosted /uploads/... URL to a base64 data URI for offline embedding
-function inlineUrl(url) {
-  if (!url) return null;
-  try {
-    // Extract path after /uploads/
-    const match = url.match(/\/uploads\/(.+?)(\?.*)?$/);
-    if (!match) return url;
-    const filePath = path.join(UPLOADS_DIR, match[1]);
-    if (!fs.existsSync(filePath)) return url;
-    const ext = path.extname(filePath).slice(1).toLowerCase();
-    const mimeMap = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml' };
-    const mime = mimeMap[ext] || 'image/jpeg';
-    const data = fs.readFileSync(filePath).toString('base64');
-    return `data:${mime};base64,${data}`;
-  } catch (_) {
-    return url;
-  }
-}
-
-// Replace /uploads/... src attributes in HTML content with inline base64 data URIs
-function inlineContentImages(html) {
-  return html.replace(/src="([^"]*\/uploads\/[^"]+)"/g, (match, url) => {
-    const inlined = inlineUrl(url);
-    return inlined ? `src="${inlined}"` : match;
-  });
-}
-
 function resolveUploadUrl(url, baseUrl) {
   if (!url) return url;
   if (!baseUrl) return url;
@@ -48,27 +21,6 @@ function absolutizeContentImages(html, baseUrl) {
   return html.replace(/src="([^"]*\/uploads\/[^"]+)"/g, (match, url) => {
     const absolute = resolveUploadUrl(url, baseUrl);
     return absolute ? `src="${absolute}"` : match;
-  });
-}
-
-function uploadPathFromUrl(url) {
-  if (!url) return null;
-  const match = url.match(/\/uploads\/(.+?)(\?.*)?$/);
-  return match ? match[1] : null;
-}
-
-function proxyUploadUrl(url, baseUrl) {
-  if (!url || !baseUrl) return url;
-  const uploadPath = uploadPathFromUrl(url);
-  if (!uploadPath) return url;
-  return `${baseUrl.replace(/\/$/, '')}/api/export/uploads/${uploadPath}`;
-}
-
-function proxyContentImages(html, baseUrl) {
-  if (!baseUrl) return html;
-  return html.replace(/src="([^"]*\/uploads\/[^"]+)"/g, (match, url) => {
-    const proxied = proxyUploadUrl(url, baseUrl);
-    return proxied ? `src="${proxied}"` : match;
   });
 }
 
@@ -97,7 +49,6 @@ router.get('/blogs/:slug/export', requireAuth, requireBlogAccess, async (req, re
 
   // HTML export
   const opts = {
-    inline_images: req.query.inline_images === 'true',
     theme: req.query.theme || 'light',
     max_width: req.query.max_width || '720px',
     base_url: process.env.BASE_URL || `${req.protocol}://${req.get('host')}`,
@@ -151,7 +102,7 @@ async function generateStaticHtml(blog, opts, db) {
     authors_count: `${authors.length} autori`,
   };
 
-  const entriesHtml = entries.map(e => renderExportEntry(e, opts, labels, locale, timezone, baseUrl, opts.inline_images)).join('\n');
+  const entriesHtml = entries.map(e => renderExportEntry(e, labels, locale, timezone, baseUrl)).join('\n');
 
   return `<!-- Inizio NewsLog Export: "${blog.title}" -->
 <div class="newslog-export" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:${opts.max_width};margin:0 auto;color:#1E293B;background:#fff;padding:24px;font-size:17px;line-height:1.6;">
@@ -171,7 +122,7 @@ async function generateStaticHtml(blog, opts, db) {
 <!-- Fine NewsLog Export -->`;
 }
 
-function renderExportEntry(entry, opts, labels, locale, timezone, baseUrl = '', inlineImages = true) {
+function renderExportEntry(entry, labels, locale, timezone, baseUrl = '') {
   const borderColor = entry.entry_type === 'breaking' ? '#DC2626'
     : entry.is_pinned ? '#F59E0B'
     : entry.entry_type === 'summary' ? '#0D9488'
@@ -191,19 +142,14 @@ function renderExportEntry(entry, opts, labels, locale, timezone, baseUrl = '', 
   return `<div id="nl-export-${entry.id}" style="border-left:3px solid ${borderColor};padding:12px 16px;margin-bottom:16px;background:#F8FAFC;border-radius:0 6px 6px 0;">
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
     ${entry.author_avatar
-      ? (() => {
-          const src = inlineImages
-            ? (inlineUrl(entry.author_avatar) || entry.author_avatar)
-            : proxyUploadUrl(entry.author_avatar, baseUrl);
-          return `<img src="${escapeHtml(src)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" alt="">`;
-        })()
+      ? `<img src="${escapeHtml(entry.author_avatar)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" alt="">`
       : `<div style="width:28px;height:28px;border-radius:50%;background:#2563EB;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">${initials}</div>`}
     <strong style="font-size:15px;">${escapeHtml(entry.author_name || 'Unknown')}</strong>
     ${badge}
     <time style="font-size:12px;color:#94A3B8;margin-left:auto;" datetime="${entry.created_at}">${timeStr}</time>
   </div>
   ${entry.title ? `<div style="font-size:18px;font-weight:700;margin-bottom:4px;line-height:1.35;">${escapeHtml(entry.title)}</div>` : ''}
-  <div style="font-size:16px;line-height:1.7;">${inlineImages ? inlineContentImages(entry.content) : proxyContentImages(entry.content, baseUrl)}</div>
+  <div style="font-size:16px;line-height:1.7;">${absolutizeContentImages(entry.content, baseUrl)}</div>
 </div>`;
 }
 
