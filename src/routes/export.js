@@ -36,6 +36,21 @@ function inlineContentImages(html) {
   });
 }
 
+function resolveUploadUrl(url, baseUrl) {
+  if (!url) return url;
+  if (!baseUrl) return url;
+  if (!url.startsWith('/uploads/')) return url;
+  return `${baseUrl.replace(/\/$/, '')}${url}`;
+}
+
+function absolutizeContentImages(html, baseUrl) {
+  if (!baseUrl) return html;
+  return html.replace(/src="([^"]*\/uploads\/[^"]+)"/g, (match, url) => {
+    const absolute = resolveUploadUrl(url, baseUrl);
+    return absolute ? `src="${absolute}"` : match;
+  });
+}
+
 // GET /api/blogs/:slug/export
 router.get('/blogs/:slug/export', requireAuth, requireBlogAccess, async (req, res) => {
   const db = getDb();
@@ -61,7 +76,7 @@ router.get('/blogs/:slug/export', requireAuth, requireBlogAccess, async (req, re
 
   // HTML export
   const opts = {
-    inline_images: req.query.inline_images !== 'false',
+    inline_images: req.query.inline_images === 'true',
     theme: req.query.theme || 'light',
     max_width: req.query.max_width || '720px',
   };
@@ -105,16 +120,16 @@ async function generateStaticHtml(blog, opts, db) {
   const entriesHtml = entries.map(e => renderExportEntry(e, opts, labels, locale, timezone, baseUrl, opts.inline_images)).join('\n');
 
   return `<!-- Inizio NewsLog Export: "${blog.title}" -->
-<div class="newslog-export" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:${opts.max_width};margin:0 auto;color:#1E293B;background:#fff;padding:24px;">
+<div class="newslog-export" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:${opts.max_width};margin:0 auto;color:#1E293B;background:#fff;padding:24px;font-size:17px;line-height:1.6;">
   <div class="newslog-header" style="border-bottom:2px solid #E2E8F0;padding-bottom:16px;margin-bottom:24px;">
-    <h2 style="margin:0 0 8px;font-size:1.5rem;">${escapeHtml(blog.title)}</h2>
-    ${blog.description ? `<p style="margin:0 0 8px;color:#64748B;">${escapeHtml(blog.description)}</p>` : ''}
-    <p class="newslog-meta" style="margin:0;color:#64748B;font-size:0.875rem;">${labels.entries_count} · ${dateStr} · ${labels.authors_count}</p>
+    <h2 style="margin:0 0 8px;font-size:26px;line-height:1.25;">${escapeHtml(blog.title)}</h2>
+    ${blog.description ? `<p style="margin:0 0 8px;color:#64748B;font-size:16px;">${escapeHtml(blog.description)}</p>` : ''}
+    <p class="newslog-meta" style="margin:0;color:#64748B;font-size:14px;">${labels.entries_count} · ${dateStr} · ${labels.authors_count}</p>
   </div>
   <div class="newslog-entries">
     ${entriesHtml}
   </div>
-  <div class="newslog-footer" style="border-top:1px solid #E2E8F0;padding-top:16px;margin-top:24px;text-align:center;color:#94A3B8;font-size:0.75rem;">
+  <div class="newslog-footer" style="border-top:1px solid #E2E8F0;padding-top:16px;margin-top:24px;text-align:center;color:#94A3B8;font-size:12px;">
     <p>${labels.generated}</p>
   </div>
 </div>
@@ -129,11 +144,11 @@ function renderExportEntry(entry, opts, labels, locale, timezone, baseUrl = '', 
     : '#E2E8F0';
 
   const badge = entry.entry_type === 'breaking'
-    ? `<span style="background:#DC2626;color:#fff;font-size:0.7rem;font-weight:700;padding:2px 6px;border-radius:3px;margin-right:8px;">${labels.breaking}</span>`
+    ? `<span style="background:#DC2626;color:#fff;font-size:12px;font-weight:700;padding:2px 6px;border-radius:3px;margin-right:8px;">${labels.breaking}</span>`
     : entry.is_pinned
-    ? `<span style="background:#F59E0B;color:#fff;font-size:0.7rem;font-weight:700;padding:2px 6px;border-radius:3px;margin-right:8px;">${labels.pinned}</span>`
+    ? `<span style="background:#F59E0B;color:#fff;font-size:12px;font-weight:700;padding:2px 6px;border-radius:3px;margin-right:8px;">${labels.pinned}</span>`
     : entry.entry_type === 'summary'
-    ? `<span style="background:#0D9488;color:#fff;font-size:0.7rem;font-weight:700;padding:2px 6px;border-radius:3px;margin-right:8px;">${labels.summary}</span>`
+    ? `<span style="background:#0D9488;color:#fff;font-size:12px;font-weight:700;padding:2px 6px;border-radius:3px;margin-right:8px;">${labels.summary}</span>`
     : '';
 
   const timeStr = formatDate(entry.created_at, locale, timezone);
@@ -143,16 +158,18 @@ function renderExportEntry(entry, opts, labels, locale, timezone, baseUrl = '', 
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
     ${entry.author_avatar
       ? (() => {
-          const src = inlineImages ? (inlineUrl(entry.author_avatar) || entry.author_avatar) : entry.author_avatar;
+          const src = inlineImages
+            ? (inlineUrl(entry.author_avatar) || entry.author_avatar)
+            : resolveUploadUrl(entry.author_avatar, baseUrl);
           return `<img src="${escapeHtml(src)}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" alt="">`;
         })()
-      : `<div style="width:28px;height:28px;border-radius:50%;background:#2563EB;color:#fff;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;">${initials}</div>`}
-    <strong style="font-size:0.875rem;">${escapeHtml(entry.author_name || 'Unknown')}</strong>
+      : `<div style="width:28px;height:28px;border-radius:50%;background:#2563EB;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">${initials}</div>`}
+    <strong style="font-size:15px;">${escapeHtml(entry.author_name || 'Unknown')}</strong>
     ${badge}
-    <time style="font-size:0.75rem;color:#94A3B8;margin-left:auto;" datetime="${entry.created_at}">${timeStr}</time>
+    <time style="font-size:12px;color:#94A3B8;margin-left:auto;" datetime="${entry.created_at}">${timeStr}</time>
   </div>
-  ${entry.title ? `<div style="font-size:1.05rem;font-weight:700;margin-bottom:4px;">${escapeHtml(entry.title)}</div>` : ''}
-  <div style="font-size:0.9375rem;line-height:1.6;">${inlineImages ? inlineContentImages(entry.content) : entry.content}</div>
+  ${entry.title ? `<div style="font-size:18px;font-weight:700;margin-bottom:4px;line-height:1.35;">${escapeHtml(entry.title)}</div>` : ''}
+  <div style="font-size:16px;line-height:1.7;">${inlineImages ? inlineContentImages(entry.content) : absolutizeContentImages(entry.content, baseUrl)}</div>
 </div>`;
 }
 
