@@ -76,7 +76,11 @@ app.use('/api', rateLimit({
 const UPLOADS_DIR = path.join(__dirname, '..', 'data', 'uploads');
 fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
-app.use('/uploads', express.static(UPLOADS_DIR));
+app.use('/uploads', (req, res, next) => {
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  next();
+}, express.static(UPLOADS_DIR));
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
