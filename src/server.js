@@ -18,6 +18,16 @@ const { startHeartbeat } = require('./sse');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// ─── Public uploads (before Helmet/CORS so images are freely accessible) ──────
+const UPLOADS_DIR = path.join(__dirname, '..', 'data', 'uploads');
+fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
+app.use('/uploads', (req, res, next) => {
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  next();
+}, express.static(UPLOADS_DIR));
+
 // ─── Security & Middleware ─────────────────────────────────────────────────────
 
 app.use(helmet({
@@ -72,15 +82,6 @@ app.use('/api', rateLimit({
 }));
 
 // ─── Static Files ─────────────────────────────────────────────────────────────
-
-const UPLOADS_DIR = path.join(__dirname, '..', 'data', 'uploads');
-fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-
-app.use('/uploads', (req, res, next) => {
-  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  next();
-}, express.static(UPLOADS_DIR));
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
